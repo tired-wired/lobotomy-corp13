@@ -43,7 +43,7 @@
 	name = "Big Bird cake"
 	desc = "A cake that seems like it's watching you."
 	icon_state = "bbcake"
-	food_reagents = list(/datum/reagent/consumable/nutriment = 20, /datum/reagent/consumable/nutriment/vitamin = 5)
+	food_reagents = list(/datum/reagent/consumable/nutriment = 20, /datum/reagent/consumable/nutriment/vitamin = 10)
 	tastes = list("cake" = 1, "vigilance" = 1)
 	foodtypes = GRAIN | DAIRY
 
@@ -79,7 +79,7 @@
 	name = "Apocalypse trifle"
 	desc = "A huge serving of monstrously good cake, custard, and forest fruit."
 	icon_state = "apoctrifle"
-	food_reagents = list(/datum/reagent/consumable/nutriment = 15, /datum/reagent/consumable/sugar = 5)
+	food_reagents = list(/datum/reagent/consumable/nutriment = 35, /datum/reagent/consumable/sugar = 10)
 	tastes = list("cake" = 3, "custard" = 3, "fresh fruit" = 3, "fear" = 1)
 	foodtypes = DAIRY | SUGAR | FRUIT
 
@@ -92,6 +92,27 @@
 	)
 	result = /obj/item/food/apoctrifle
 	subcategory = CAT_MISCFOOD
+
+/obj/item/food/soup/basilisoup
+	name = "basilisoup"
+	desc = "A boiling hot stew. It tastes like home."
+	icon_state = "meatballsoup"//replace with actual sprite when done
+	food_reagents = list(/datum/reagent/consumable/nutriment = 9, /datum/reagent/water = 5, /datum/reagent/consumable/nutriment/vitamin = 9)
+	tastes = list("basil" = 2, "meat" = 2, "potato" = 2, "vegetables" = 2, "burning" = 1)
+	foodtypes = VEGETABLES | MEAT
+
+/datum/crafting_recipe/food/soup/basilisoup
+	name = "Basilisoup"
+	reqs = list(
+		/datum/reagent/water = 10,
+		/obj/item/reagent_containers/glass/bowl = 1,
+		/obj/item/food/grown/carrot = 1,
+		/obj/item/food/grown/onion = 1,
+		/obj/item/food/grown/potato = 2,
+		/obj/item/food/meat/cutlet = 2
+	)
+	result = /obj/item/food/soup/basilisoup
+	subcategory = CAT_SOUP
 
 ////////////////////////////////////////////////////////////////ordeal food/////////////////////////////////////////////////////////////////////////////
 /datum/crafting_recipe/food/wormfood
@@ -129,7 +150,7 @@
 	name = "sweeper soup"
 	desc = "Liquid sweeper in a bowl made of its own shell."
 	icon_state = "redbeetsoup" //PLACEHOLDER
-	food_reagents = list(/datum/reagent/consumable/nutriment/protein = 6, /datum/reagent/blood = 10)
+	food_reagents = list(/datum/reagent/consumable/nutriment/protein = 9, /datum/reagent/blood = 10)
 	tastes = list("something metallic" = 1)
 	foodtypes = MEAT
 
@@ -137,7 +158,8 @@
 	name = "Sweeper Soup"
 	reqs = list(
 		/datum/reagent/water = 10,
-		/obj/item/food/meat/slab/sweeper = 2
+		/obj/item/food/meat/slab/sweeper = 2,
+		/obj/item/reagent_containers/glass/bowl = 1
 	)
 	result = /obj/item/food/soup/sweepersoup
 	subcategory = CAT_SOUP
@@ -148,7 +170,7 @@
 	name = "unending tea party"
 	desc = "A delusionally good selection of treats, crustless sandwiches, and hot tea. Enough to share." //ego ability gives snacks, therefore snack plate to share
 	icon_state = "teaparty"
-	food_reagents = list(/datum/reagent/consumable/nutriment = 12, /datum/reagent/abnormality/bottle = 6)
+	food_reagents = list(/datum/reagent/consumable/nutriment = 12, /datum/reagent/consumable/sugar = 6, /datum/reagent/abnormality/bottle = 6)
 	tastes = list("tiny sandwiches" = 2, "cookies" = 2, "tea" = 2, "delusion" = 1)
 	foodtypes = GRAIN | SUGAR
 
@@ -168,23 +190,3 @@
 	)
 	result = /obj/item/food/meatjam
 	subcategory = CAT_MEAT
-
-/obj/item/food/soup/basilisoup
-	name = "basilisoup"
-	desc = "A boiling hot stew. It tastes like home."
-	icon_state = "meatballsoup"//replace with actual sprite when done
-	food_reagents = list(/datum/reagent/consumable/nutriment = 3, /datum/reagent/water = 2)
-	tastes = list("basil" = 2, "meat" = 2, "potato" = 2, "vegetables" = 2, "burning" = 1)
-	foodtypes = VEGETABLES | MEAT
-
-/datum/crafting_recipe/food/soup/basilisoup
-	name = "Basilisoup"
-	reqs = list(
-		/datum/reagent/water = 10,
-		/obj/item/food/grown/carrot = 1,
-		/obj/item/food/grown/onion = 1,
-		/obj/item/food/grown/potato = 2,
-		/obj/item/food/meat/cutlet = 2
-	)
-	result = /obj/item/food/soup/basilisoup
-	subcategory = CAT_SOUP
