@@ -20,12 +20,12 @@
 	..()
 	if(shotsleft)
 		return TRUE
-	visible_message("<span class='notice'>The gun is out of ammo.</span>")
+	visible_message(span_notice("The gun is out of ammo."))
 	playsound(src, dry_fire_sound, 30, TRUE)
 	return FALSE
 
 /obj/item/gun/ego_gun/city/fullstop/attack_self(mob/user)
-	to_chat(user,"<span class='notice'>You start loading a new magazine.</span>")
+	to_chat(user,span_notice("You start loading a new magazine."))
 	playsound(src, 'sound/weapons/gun/general/slide_lock_1.ogg', 50, TRUE)
 	if(do_after(user, reloadtime, src)) //gotta reload
 		playsound(src, 'sound/weapons/gun/general/bolt_rack.ogg', 50, TRUE)
@@ -33,7 +33,7 @@
 
 /obj/item/gun/ego_gun/city/fullstop/EgoAttackInfo(mob/user)
 	if(chambered && chambered.BB)
-		return "<span class='notice'>Its bullets deal [chambered.BB.damage*projectile_damage_multiplier] [chambered.BB.damage_type] damage.</span>"
+		return span_notice("Its bullets deal [chambered.BB.damage*projectile_damage_multiplier] [chambered.BB.damage_type] damage.")
 	return
 
 /obj/item/gun/ego_gun/city/fullstop/examine(mob/user)
@@ -60,7 +60,7 @@
 /obj/item/gun/ego_gun/city/fullstop/pistol
 	name = "fullstop pistol"
 	desc = "A fullstop pistol. Looks familiar."
-	icon_state = "fullstopsniper"
+	icon_state = "fullstoppistol"
 	inhand_icon_state = "fullstopsniper"
 	shotsleft = 17
 	fire_delay = 5
@@ -92,7 +92,7 @@
 							)
 
 /obj/item/gun/ego_gun/city/fullstop/deagle
-	name = "fullstop pistol"
+	name = "fullstop magnum"
 	desc = "An expensive pistol. Keep your hands steady. It's not over yet."
 	icon_state = "fullstopdeagle"
 	inhand_icon_state = "fullstopdeagle"

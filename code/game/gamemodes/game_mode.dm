@@ -73,10 +73,7 @@
 	antag_candidates = get_players_for_role(antag_flag)
 	if(!GLOB.Debug2)
 		if(antag_candidates.len < required_enemies)
-			return FALSE
-		return TRUE
-	else
-		message_admins("<span class='notice'>DEBUG: GAME STARTING WITHOUT PLAYER NUMBER CHECKS, THIS WILL PROBABLY BREAK SHIT.</span>")
+			message_admins(span_notice("DEBUG: GAME STARTING WHILE FAILING PLAYER NUMBER CHECKS, THIS WILL PROBABLY BREAK SHIT."))
 		return TRUE
 
 
@@ -88,7 +85,7 @@
 /datum/game_mode/proc/post_setup(report) //Gamemodes can override the intercept report. Passing TRUE as the argument will force a report.
 	if(!report)
 		report = !CONFIG_GET(flag/no_intercept_report)
-	addtimer(CALLBACK(GLOBAL_PROC, .proc/display_roundstart_logout_report), ROUNDSTART_LOGOUT_REPORT_TIME)
+	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(display_roundstart_logout_report)), ROUNDSTART_LOGOUT_REPORT_TIME)
 
 	if(CONFIG_GET(flag/reopen_roundstart_suicide_roles))
 		var/delay = CONFIG_GET(number/reopen_roundstart_suicide_roles_delay)
@@ -96,7 +93,7 @@
 			delay = (delay SECONDS)
 		else
 			delay = (4 MINUTES) //default to 4 minutes if the delay isn't defined.
-		addtimer(CALLBACK(GLOBAL_PROC, .proc/reopen_roundstart_suicide_roles), delay)
+		addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(reopen_roundstart_suicide_roles)), delay)
 
 	if(SSdbcore.Connect())
 		var/list/to_set = list()
@@ -116,10 +113,10 @@
 			query_round_game_mode.Execute()
 			qdel(query_round_game_mode)
 	if(report)
-		addtimer(CALLBACK(src, .proc/send_intercept, 0), rand(waittime_l, waittime_h))
+		addtimer(CALLBACK(src, PROC_REF(send_intercept), 0), rand(waittime_l, waittime_h))
 	generate_station_goals()
 
-	addtimer(CALLBACK(SSabnormality_queue, /datum/controller/subsystem/abnormality_queue/proc/HandleStartingAbnormalities), ABNORMALITY_DELAY)
+	addtimer(CALLBACK(SSabnormality_queue, TYPE_PROC_REF(/datum/controller/subsystem/abnormality_queue, HandleStartingAbnormalities)), ABNORMALITY_DELAY)
 
 	gamemode_ready = TRUE
 	return TRUE
@@ -619,11 +616,11 @@
 /datum/game_mode/proc/set_round_result()
 	SSticker.mode_result = "undefined"
 	if(station_was_nuked)
-		SSticker.news_report = STATION_DESTROYED_NUKE
+		SSticker.news_report = max(SSticker.news_report, STATION_DESTROYED_NUKE)
 	if(EMERGENCY_ESCAPED_OR_ENDGAMED)
-		SSticker.news_report = STATION_EVACUATED
+		SSticker.news_report = max(SSticker.news_report, STATION_EVACUATED)
 		if(SSshuttle.emergency.is_hijacked())
-			SSticker.news_report = SHUTTLE_HIJACK
+			SSticker.news_report = max(SSticker.news_report, SHUTTLE_HIJACK)
 
 /// Mode specific admin panel.
 /datum/game_mode/proc/admin_panel()

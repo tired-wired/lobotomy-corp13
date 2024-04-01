@@ -52,11 +52,11 @@
 /obj/item/gun/medbeam/proc/beam_died()
 	active = FALSE //skip qdelling the beam again if we're doing this proc, because
 	if(isliving(loc))
-		to_chat(loc, "<span class='warning'>You lose control of the beam!</span>")
+		to_chat(loc, span_warning("You lose control of the beam!"))
 	LoseTarget()
 
 /obj/item/gun/medbeam/process_fire(atom/target, mob/living/user, message = TRUE, params = null, zone_override = "", bonus_spread = 0)
-	var/list/banned_roles = list("R-Corp Scout Raven", "R-Corp Support Raven", "Raven Squad Captain", "R-Corp Suppressive Rabbit", "R-Corp Assault Rabbit", "R-Corp Suppressive Rabbit")
+	var/list/banned_roles = list("R-Corp Scout Raven", "R-Corp Support Raven", "Raven Squad Captain", "R-Corp Suppressive Rabbit", "R-Corp Assault Rabbit", "R-Corp Suppressive Rabbit", "R-Corp Berserker Reindeer")
 	if(istype(user) && (user?.mind?.assigned_role in banned_roles))
 		to_chat(user, "<span class='notice'>You don't know how to use this.</span>")
 		return
@@ -72,7 +72,7 @@
 	current_target = target
 	active = TRUE
 	current_beam = user.Beam(current_target, icon_state="medbeam", time = 10 MINUTES, maxdistance = max_range, beam_type = /obj/effect/ebeam/medical)
-	RegisterSignal(current_beam, COMSIG_PARENT_QDELETING, .proc/beam_died)//this is a WAY better rangecheck than what was done before (process check)
+	RegisterSignal(current_beam, COMSIG_PARENT_QDELETING, PROC_REF(beam_died))//this is a WAY better rangecheck than what was done before (process check)
 
 	SSblackbox.record_feedback("tally", "gun_fired", 1, type)
 
@@ -117,7 +117,13 @@
 				return FALSE
 		for(var/obj/effect/ebeam/medical/B in turf)// Don't cross the str-beams!
 			if(B.owner.origin != current_beam.origin)
-				explosion(B.loc,0,3,5,8)
+				explosion(B.loc,0,0,5,8)
+				qdel(dummy)
+				return FALSE
+
+		for(var/obj/effect/ebeam/mindwhip/B in turf)// Don't cross the str-beams!
+			if(B.owner.origin != current_beam.origin)
+				explosion(B.loc,0,0,5,8)
 				qdel(dummy)
 				return FALSE
 	qdel(dummy)
@@ -128,7 +134,7 @@
 
 /obj/item/gun/medbeam/proc/on_beam_tick(mob/living/target)
 	if(target.health != target.maxHealth)
-		new /obj/effect/temp_visual/heal(get_turf(target), "#80F5FF")
+		new /obj/effect/temp_visual/heal(get_turf(target), "#E02D2D")
 	target.adjustBruteLoss(-4)
 	target.adjustFireLoss(-4)
 	target.adjustToxLoss(-1)

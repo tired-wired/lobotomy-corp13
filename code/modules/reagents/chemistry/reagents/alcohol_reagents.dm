@@ -1,4 +1,4 @@
-#define ALCOHOL_THRESHOLD_MODIFIER 1 //Greater numbers mean that less alcohol has greater intoxication potential
+#define ALCOHOL_THRESHOLD_MODIFIER 0.25 //Greater numbers mean that less alcohol has greater intoxication potential
 #define ALCOHOL_RATE 0.005 //The rate at which alcohol affects you
 #define ALCOHOL_EXPONENT 1.6 //The exponent applied to boozepwr to make higher volume alcohol at least a little bit damaging to the liver
 
@@ -90,6 +90,7 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	nutriment_factor = 1 * REAGENTS_METABOLISM
 	boozepwr = 25
 	taste_description = "piss water"
+	glass_icon_state = "beerglass"
 	glass_name = "glass of beer"
 	glass_desc = "A freezing pint of beer."
 
@@ -1956,21 +1957,22 @@ All effects don't start immediately, but rather get worse over time; the rate is
 	generate_data_info(data)
 
 /datum/reagent/consumable/ethanol/fruit_wine/proc/generate_data_info(list/data)
-	var/minimum_percent = 0.15 //Percentages measured between 0 and 1.
+	var/const/minimum_percent = 0.15 
+	var/const/notable_percent = minimum_percent * 2
 	var/list/primary_tastes = list()
 	var/list/secondary_tastes = list()
 	glass_name = "glass of [name]"
 	glass_desc = description
 	for(var/taste in tastes)
 		switch(tastes[taste])
-			if(minimum_percent*2 to INFINITY)
+			if(notable_percent to INFINITY) //Percentages measured between 0 and 1.
 				primary_tastes += taste
-			if(minimum_percent to minimum_percent*2)
+			if(minimum_percent to notable_percent)
 				secondary_tastes += taste
 
 	var/minimum_name_percent = 0.35
 	name = ""
-	var/list/names_in_order = sortTim(names, /proc/cmp_numeric_dsc, TRUE)
+	var/list/names_in_order = sortTim(names, GLOBAL_PROC_REF(cmp_numeric_dsc), TRUE)
 	var/named = FALSE
 	for(var/fruit_name in names)
 		if(names[fruit_name] >= minimum_name_percent)
@@ -2332,3 +2334,46 @@ All effects don't start immediately, but rather get worse over time; the rate is
 /datum/reagent/consumable/ethanol/telepole/on_mob_end_metabolize(mob/living/affected_mob)
 	REMOVE_TRAIT(affected_mob, TRAIT_SHOCKIMMUNE, type)
 	return ..()
+
+/datum/reagent/consumable/ethanol/fairywine
+	name = "Fairy Wine"
+	description = "A very strong drink dripping with slime, Smells quite pleasant"
+	boozepwr = 70
+	color = "#125301"
+	quality = DRINK_GOOD
+	taste_description = "sweet and, sticky?"
+	glass_icon_state = "fairywine"
+	glass_name = "Fairywine"
+	glass_desc = "A very strong drink dripping with slime, Smells quite pleasant"
+	overdose_threshold = 20
+
+/datum/reagent/consumable/ethanol/fairywine/on_mob_life(mob/living/M)
+	if(!ishuman(M))
+		return
+	var/mob/living/carbon/human/H = M
+	H.adjustSanityLoss(-2.5) // That's healing
+	return ..()
+
+/datum/reagent/consumable/ethanol/fairywine/on_mob_metabolize(mob/living/M)
+	if(!ishuman(M))
+		return
+	var/mob/living/carbon/human/H = M
+	to_chat(M, "<span class='notice'>You know... This wine is quite good...</span>")
+	H.adjust_attribute_buff(PRUDENCE_ATTRIBUTE, 15)
+
+/datum/reagent/consumable/ethanol/fairywine/on_mob_end_metabolize(mob/living/M)
+	if(!ishuman(M))
+		return
+	var/mob/living/carbon/human/H = M
+	to_chat(M, "<span class='notice'>Oh... This good feeling is now gone...</span>")
+	H.adjust_attribute_buff(PRUDENCE_ATTRIBUTE, -15)
+
+/datum/reagent/consumable/ethanol/fairywine/overdose_start(mob/living/M)
+	to_chat(M, "<span class='userdanger'>Oh wow... This feels weird... You really *Burp* shouldn't have drank all *Burp* of that [name]!</span>")
+
+/datum/reagent/consumable/ethanol/fairywine/overdose_process(mob/living/M)
+	if(!ishuman(M))
+		return
+	var/mob/living/carbon/human/H = M
+	H.adjustToxLoss(1.5*REM, 0)
+	to_chat(M, "<span class='red'> You feel quite a bit sick from drinking that much wine... </span>")

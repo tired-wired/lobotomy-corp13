@@ -10,6 +10,7 @@
 	icon_living = "hiding"
 	icon_dead = "blackswan_dream"
 	var/icon_aggro = "blackswan_closed"
+	portrait = "black_swan"
 	del_on_death = FALSE
 	maxHealth = 3000
 	health = 3000
@@ -26,7 +27,6 @@
 	vision_range = 14
 	aggro_vision_range = 20
 	melee_damage_type = RED_DAMAGE
-	armortype = RED_DAMAGE
 	melee_damage_lower = 20
 	melee_damage_upper = 40
 	threat_level = WAW_LEVEL
@@ -35,23 +35,21 @@
 	attack_verb_simple = "twack"
 	start_qliphoth = 5
 	work_chances = list(
-						ABNORMALITY_WORK_INSTINCT = list(0, 0, 45, 50, 55),
-						ABNORMALITY_WORK_INSIGHT = list(0, 0, 40, 45, 50),
-						ABNORMALITY_WORK_ATTACHMENT = 0,
-						ABNORMALITY_WORK_REPRESSION = list(0, 0, 45, 50, 55),
-						)
+		ABNORMALITY_WORK_INSTINCT = list(0, 0, 45, 50, 55),
+		ABNORMALITY_WORK_INSIGHT = list(0, 0, 40, 45, 50),
+		ABNORMALITY_WORK_ATTACHMENT = 0,
+		ABNORMALITY_WORK_REPRESSION = list(0, 0, 45, 50, 55),
+	)
 	work_damage_amount = 12
 	work_damage_type = WHITE_DAMAGE
-	deathmessage = "weeps a green sludge while clutching her brooch."
+	death_message = "weeps a green sludge while clutching her brooch."
 	base_pixel_x = -16
 	pixel_x = -16
 
-	attack_action_types = list(/datum/action/cooldown/blackswan_umbrella)
-
 	ego_list = list(
 		/datum/ego_datum/weapon/swan,
-		/datum/ego_datum/armor/swan
-		)
+		/datum/ego_datum/armor/swan,
+	)
 	gift_type =  /datum/ego_gifts/swan
 	gift_message = "You feel exhausted but if you work a little harder, things will work themselves out."
 	abnormality_origin = ABNORMALITY_ORIGIN_LOBOTOMY
@@ -61,11 +59,12 @@
 	var/abnos_breached = 0
 	//brothers from left to right
 	var/list/family_status = list(
-					1 = FALSE,
-					2 = FALSE,
-					3 = FALSE,
-					4 = FALSE,
-					5 = FALSE)
+		1 = FALSE,
+		2 = FALSE,
+		3 = FALSE,
+		4 = FALSE,
+		5 = FALSE,
+	)
 	//If is in closed or open mode
 	var/beak_closed = FALSE
 	var/can_act = TRUE
@@ -73,9 +72,12 @@
 	//cooldowns
 	var/umbrella_cooldown = 0
 
+	//PLAYABLES ATTACKS
+	attack_action_types = list(/datum/action/cooldown/blackswan_umbrella)
+
 /datum/action/cooldown/blackswan_umbrella
-	name = "Black Swan Umbrella"
-	icon_icon = 'icons/obj/ego_weapons.dmi'
+	name = "Black Swan's Umbrella"
+	icon_icon = 'icons/mob/actions/actions_abnormality.dmi'
 	button_icon_state = "swan"
 	check_flags = AB_CHECK_CONSCIOUS
 	transparent_when_unavailable = TRUE
@@ -87,15 +89,18 @@
 	if(!istype(owner, /mob/living/simple_animal/hostile/abnormality/black_swan))
 		return FALSE
 	var/mob/living/simple_animal/hostile/abnormality/black_swan/swan = owner
+	if(swan.IsContained()) // No more using cooldowns while contained
+		return FALSE
 	swan.OpenUmbrella()
 	StartCooldown()
 	return TRUE
 
+
 /mob/living/simple_animal/hostile/abnormality/black_swan/Initialize()
 	. = ..()
-	RegisterSignal(SSdcs, COMSIG_GLOB_MOB_DEATH, .proc/OnMobDeath) // Hell
-	RegisterSignal(SSdcs, COMSIG_GLOB_HUMAN_INSANE, .proc/OnHumanInsane)
-	RegisterSignal(SSdcs, COMSIG_GLOB_ABNORMALITY_BREACH, .proc/OnAbnoBreach)
+	RegisterSignal(SSdcs, COMSIG_GLOB_MOB_DEATH, PROC_REF(OnMobDeath)) // Hell
+	RegisterSignal(SSdcs, COMSIG_GLOB_HUMAN_INSANE, PROC_REF(OnHumanInsane))
+	RegisterSignal(SSdcs, COMSIG_GLOB_ABNORMALITY_BREACH, PROC_REF(OnAbnoBreach))
 
 /mob/living/simple_animal/hostile/abnormality/black_swan/PostSpawn()
 	. = ..()
@@ -115,20 +120,20 @@
 	return ..()
 
 /mob/living/simple_animal/hostile/abnormality/black_swan/NeutralEffect(mob/living/carbon/human/user, work_type, pe)
-	.=..()
+	. = ..()
 	if(family_status[5] != TRUE)
 		family_status[5] = TRUE
 		BrotherOverlays()
 	return
 
 /mob/living/simple_animal/hostile/abnormality/black_swan/FailureEffect(mob/living/carbon/human/user, work_type, pe)
-	.=..()
+	. = ..()
 	if(family_status[4] != TRUE)
 		family_status[4] = TRUE
 		BrotherOverlays()
 	return
 
-/mob/living/simple_animal/hostile/abnormality/black_swan/BreachEffect(mob/living/carbon/human/user)
+/mob/living/simple_animal/hostile/abnormality/black_swan/BreachEffect(mob/living/carbon/human/user, breach_type)
 	. = ..()
 	cut_overlays()
 	update_icon()
@@ -194,8 +199,8 @@
 /mob/living/simple_animal/hostile/abnormality/black_swan/bullet_act(obj/projectile/P) //umbrella shield code
 	if(umbrella_open)
 		if(is_A_facing_B(src,P.firer))
-			if(P.reflectable != NONE && prob(20))
-				visible_message("<span class='userdanger'>[src] deflects [P] with their umbrella!</span>")
+			if(P.reflectable != NONE)
+				visible_message(span_userdanger("[src] deflects [P] with their umbrella!"))
 				ReflectProjectile(P)
 				return BULLET_ACT_FORCE_PIERCE
 			return BULLET_ACT_BLOCK
@@ -215,8 +220,8 @@
 	umbrella_open = TRUE
 	umbrella_cooldown = world.time + SWAN_UMBRELLA_COOLDOWN
 	update_icon_state()
-	visible_message("<span class='userdanger'>[src] opens up their umbrella!</span>", "<span class='notice'>You open up your umbrella</span>")
-	addtimer(CALLBACK(src, .proc/CloseUmbrella), SWAN_UMBRELLA_DURATION)
+	visible_message(span_userdanger("[src] opens up their umbrella!"), span_notice("You open up your umbrella"))
+	addtimer(CALLBACK(src, PROC_REF(CloseUmbrella)), SWAN_UMBRELLA_DURATION)
 
 /mob/living/simple_animal/hostile/abnormality/black_swan/proc/CloseUmbrella()
 	if(QDELETED(src))
@@ -232,7 +237,10 @@
 	can_act = FALSE
 	if(do_after(src, 2 SECONDS, target = src))
 		new /obj/effect/temp_visual/fragment_song(get_turf(src))
-		for(var/mob/living/L in orange(9, src))
+		var/list/turfs_to_check = orange(9, src)
+		for(var/obj/vehicle/sealed/mecha/V in turfs_to_check)
+			V.take_damage(70, WHITE_DAMAGE)
+		for(var/mob/living/L in turfs_to_check)
 			if(isabnormalitymob(L))
 				var/mob/living/simple_animal/hostile/abnormality/maybe_brothers = L
 				if(maybe_brothers.IsContained())
@@ -277,7 +285,7 @@
 	if(!IsContained() || family_status[3] == TRUE) // If it's breaching right now
 		return FALSE
 	abnos_breached += 1
-	if(abnos_breached > 3)
+	if(abnos_breached > 2)
 		family_status[3] = TRUE
 		BrotherOverlays()
 		abnos_breached = 0
@@ -293,7 +301,7 @@
 	if(died.z != z)
 		return FALSE
 	dead_humans += 1
-	if(dead_humans >= 5)
+	if(dead_humans >= 2)
 		family_status[1] = TRUE
 		BrotherOverlays()
 		dead_humans = 0
@@ -309,7 +317,7 @@
 	if(H.z != z)
 		return FALSE
 	insane_humans += 1
-	if(insane_humans >= 5)
+	if(insane_humans >= 2)
 		family_status[2] = TRUE
 		BrotherOverlays()
 		insane_humans = 0

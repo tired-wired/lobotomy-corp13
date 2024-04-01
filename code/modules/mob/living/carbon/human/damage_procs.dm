@@ -30,8 +30,8 @@
 		sanity_lost = FALSE
 		grab_ghost(force = TRUE)
 		remove_status_effect(/datum/status_effect/panicked_type)
-		visible_message("<span class='notice'>[src] comes back to [p_their(TRUE)] senses!</span>", \
-						"<span class='notice'>You are back to normal!</span>")
+		visible_message(span_boldnotice("[src] comes back to [p_their(TRUE)] senses!"), \
+						span_boldnotice("You are back to normal!"))
 	else if(!sanity_lost && sanityhealth <= 0)
 		sanity_lost = TRUE
 		apply_status_effect(/datum/status_effect/panicked)
@@ -57,6 +57,8 @@
 	playsound(loc, 'sound/effects/sanity_lost.ogg', 75, TRUE, -1)
 	var/warning_text = "[src] shakes for a moment..."
 	var/datum/status_effect/panicked_type/status_effect_type
+	if(SSmaptype.maptype == "city" && attribute == JUSTICE_ATTRIBUTE)
+		attribute = TEMPERANCE_ATTRIBUTE // Justice panics default to temerance panics on city, no containment cells.
 	switch(attribute)
 		if(FORTITUDE_ATTRIBUTE)
 			ai_controller = /datum/ai_controller/insane/murder
@@ -68,15 +70,15 @@
 			status_effect_type = /datum/status_effect/panicked_type/suicide
 		if(TEMPERANCE_ATTRIBUTE)
 			ai_controller = /datum/ai_controller/insane/wander
-			warning_text = "[src] twitches for a moment, [p_their()] eyes looking for an exit."
+			warning_text = "[src] twitches for a moment, [p_their()] eyes looking for [SSmaptype.maptype == "city" ? "a way out" : "an exit"]."
 			status_effect_type = /datum/status_effect/panicked_type/wander
 		if(JUSTICE_ATTRIBUTE)
 			ai_controller = /datum/ai_controller/insane/release
 			warning_text = "[src] laughs for a moment, as [p_they()] start[p_s()] approaching nearby containment zones."
 			status_effect_type = /datum/status_effect/panicked_type/release
 	apply_status_effect(status_effect_type)
-	visible_message("<span class='danger'>[warning_text]</span>", \
-					"<span class='userdanger'>You've been overwhelmed by what is going on in this place... There's no hope!</span>")
+	visible_message(span_bolddanger("[warning_text]"), \
+					span_userdanger("You've been overwhelmed by what is going on in this place... There's no hope!"))
 	var/turf/T = get_turf(src)
 	if(mind)
 		if(mind.name && mind.active && !istype(T.loc, /area/ctf))

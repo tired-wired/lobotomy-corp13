@@ -7,6 +7,7 @@
 	icon_living = "clown_smiling"
 	var/icon_aggro = "clown_breach"
 	icon_dead = "clown_breach"
+	portrait = "clown_smiling"
 	pixel_y = 64
 	base_pixel_y = 64
 	speak_emote = list("honks")
@@ -20,7 +21,6 @@
 	melee_damage_type = RED_DAMAGE
 	see_in_dark = 10
 	stat_attack = DEAD
-	speed = 2
 	move_to_delay = 3
 	threat_level = WAW_LEVEL
 	attack_sound = 'sound/weapons/bladeslice.ogg'
@@ -32,14 +32,14 @@
 	patrol_cooldown_time = 5 SECONDS
 	start_qliphoth = 2
 	work_chances = list(
-						ABNORMALITY_WORK_INSTINCT = 35,
-						ABNORMALITY_WORK_INSIGHT = 45,
-						ABNORMALITY_WORK_ATTACHMENT = list(50, 55, 60, 65, 65),
-						ABNORMALITY_WORK_REPRESSION = 35
-						)
+		ABNORMALITY_WORK_INSTINCT = 35,
+		ABNORMALITY_WORK_INSIGHT = 45,
+		ABNORMALITY_WORK_ATTACHMENT = list(50, 55, 60, 65, 65),
+		ABNORMALITY_WORK_REPRESSION = 35,
+	)
 	work_damage_amount = 12
 	work_damage_type = WHITE_DAMAGE
-	deathmessage = "blows up like a balloon!"
+	death_message = "blows up like a balloon!"
 	speak_chance = 2
 	emote_see = list("honks.")
 	emote_hear = list("honks.")
@@ -51,8 +51,8 @@
 	ego_list = list(
 		/datum/ego_datum/weapon/mini/mirth,
 		/datum/ego_datum/weapon/mini/malice,
-		/datum/ego_datum/armor/darkcarnival
-		)
+		/datum/ego_datum/armor/darkcarnival,
+	)
 	gift_type =  /datum/ego_gifts/darkcarnival
 	gift_message = "Life isn't scary when you don't fear death."
 	abnormality_origin = ABNORMALITY_ORIGIN_ARTBOOK
@@ -62,13 +62,14 @@
 	var/step = FALSE
 
 //A clown isn't a clown without his shoes
-/mob/living/simple_animal/hostile/abnormality/clown/BreachEffect(mob/living/carbon/human/user)
-	..()
+/mob/living/simple_animal/hostile/abnormality/clown/BreachEffect(mob/living/carbon/human/user, breach_type)
+	. = ..()
 	update_icon()
+	pixel_y = 0
+	base_pixel_y = 0
 	AddElement(/datum/element/waddling)
 	playsound(get_turf(src), 'sound/abnormalities/clownsmiling/announce.ogg', 75, 1)
 	GiveTarget(user)
-	src.pixel_y = 0
 
 /mob/living/simple_animal/hostile/abnormality/clown/Moved()
 	. = ..()
@@ -142,30 +143,32 @@
 
 	var/turf/target_turf = get_closest_atom(/turf/open, target_turfs, src)
 	if(istype(target_turf))
-		patrol_path = get_path_to(src, target_turf, /turf/proc/Distance_cardinal, 0, 200)
+		patrol_path = get_path_to(src, target_turf, TYPE_PROC_REF(/turf, Distance_cardinal), 0, 200)
 		return
 	return ..()
 
 //When the work result was good...
 /mob/living/simple_animal/hostile/abnormality/clown/SuccessEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	if(prob(50))
 		datum_reference.qliphoth_change(-1)
 	return
 
 /mob/living/simple_animal/hostile/abnormality/clown/FailureEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	datum_reference.qliphoth_change(-1)
 	return
 
 //Death explosion
 /mob/living/simple_animal/hostile/abnormality/clown/death(gibbed)
 	animate(src, transform = matrix()*1.8, color = "#FF0000", time = 20)
-	addtimer(CALLBACK(src, .proc/DeathExplosion), 20)
+	addtimer(CALLBACK(src, PROC_REF(DeathExplosion)), 20)
 	..()
 
 /mob/living/simple_animal/hostile/abnormality/clown/proc/DeathExplosion()
 	if(QDELETED(src))
 		return
-	visible_message("<span class='danger'>[src] suddenly explodes!</span>")
+	visible_message(span_danger("[src] suddenly explodes!"))
 	playsound(get_turf(src), 'sound/abnormalities/clownsmiling/announcedead.ogg', 75, 1)
 	for(var/mob/living/L in view(5, src))
 		if(!faction_check_mob(L))

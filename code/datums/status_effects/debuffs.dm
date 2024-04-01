@@ -143,9 +143,9 @@
 	if(!HAS_TRAIT(owner, TRAIT_SLEEPIMMUNE))
 		ADD_TRAIT(owner, TRAIT_KNOCKEDOUT, TRAIT_STATUS_EFFECT(id))
 		tick_interval = -1
-	RegisterSignal(owner, SIGNAL_ADDTRAIT(TRAIT_SLEEPIMMUNE), .proc/on_owner_insomniac)
-	RegisterSignal(owner, SIGNAL_REMOVETRAIT(TRAIT_SLEEPIMMUNE), .proc/on_owner_sleepy)
-	RegisterSignal(owner, COMSIG_MOB_APPLY_DAMGE, .proc/on_owner_damage)
+	RegisterSignal(owner, SIGNAL_ADDTRAIT(TRAIT_SLEEPIMMUNE), PROC_REF(on_owner_insomniac))
+	RegisterSignal(owner, SIGNAL_REMOVETRAIT(TRAIT_SLEEPIMMUNE), PROC_REF(on_owner_sleepy))
+	RegisterSignal(owner, COMSIG_MOB_APPLY_DAMGE, PROC_REF(on_owner_damage))
 
 /datum/status_effect/incapacitating/sleeping/on_remove()
 	UnregisterSignal(owner, list(SIGNAL_ADDTRAIT(TRAIT_SLEEPIMMUNE), SIGNAL_REMOVETRAIT(TRAIT_SLEEPIMMUNE), COMSIG_MOB_APPLY_DAMGE))
@@ -390,7 +390,7 @@
 
 /datum/status_effect/eldritch/on_apply()
 	if(owner.mob_size >= MOB_SIZE_HUMAN)
-		RegisterSignal(owner,COMSIG_ATOM_UPDATE_OVERLAYS,.proc/update_owner_underlay)
+		RegisterSignal(owner,COMSIG_ATOM_UPDATE_OVERLAYS, PROC_REF(update_owner_underlay))
 		owner.update_icon()
 		return TRUE
 	return FALSE
@@ -678,7 +678,7 @@
 /datum/status_effect/trance/on_apply()
 	if(!iscarbon(owner))
 		return FALSE
-	RegisterSignal(owner, COMSIG_MOVABLE_HEAR, .proc/hypnotize)
+	RegisterSignal(owner, COMSIG_MOVABLE_HEAR, PROC_REF(hypnotize))
 	ADD_TRAIT(owner, TRAIT_MUTE, "trance")
 	owner.add_client_colour(/datum/client_colour/monochrome/trance)
 	owner.visible_message("[stun ? "<span class='warning'>[owner] stands still as [owner.p_their()] eyes seem to focus on a distant point.</span>" : ""]", \
@@ -710,8 +710,8 @@
 	// The brain trauma itself does its own set of logging, but this is the only place the source of the hypnosis phrase can be found.
 	C.log_message("has been hypnotised by the phrase '[hearing_args[HEARING_RAW_MESSAGE]]' spoken by [key_name(hearing_speaker)]", LOG_ATTACK)
 	hearing_speaker.log_message("has hypnotised [key_name(C)] with the phrase '[hearing_args[HEARING_RAW_MESSAGE]]'", LOG_ATTACK, log_globally = FALSE)
-	addtimer(CALLBACK(C, /mob/living/carbon.proc/gain_trauma, /datum/brain_trauma/hypnosis, TRAUMA_RESILIENCE_SURGERY, hearing_args[HEARING_RAW_MESSAGE]), 10)
-	addtimer(CALLBACK(C, /mob/living.proc/Stun, 60, TRUE, TRUE), 15) //Take some time to think about it
+	addtimer(CALLBACK(C, TYPE_PROC_REF(/mob/living/carbon, gain_trauma), /datum/brain_trauma/hypnosis, TRAUMA_RESILIENCE_SURGERY, hearing_args[HEARING_RAW_MESSAGE]), 10)
+	addtimer(CALLBACK(C, TYPE_PROC_REF(/mob/living, Stun), 60, TRUE, TRUE), 15) //Take some time to think about it
 	qdel(src)
 
 /datum/status_effect/spasms
@@ -981,21 +981,23 @@
 
 
 //~~~LC13 General Debuffs~~~
-
+#define CARBON_HALFSPEED /datum/movespeed_modifier/qliphothoverload
 /datum/status_effect/qliphothoverload
 	id = "qliphoth intervention field"
 	duration = 10 SECONDS
 	alert_type = null
 	status_type = STATUS_EFFECT_REFRESH
 	var/statuseffectvisual
-	var/originalstamina = 0
 
 /datum/status_effect/qliphothoverload/on_apply()
 	. = ..()
-	var/mob/living/simple_animal/hostile/L = owner
-	L.adjustStaminaLoss(160, TRUE, TRUE)
-	L.stamina_recovery *= 0.01 //anything with below 10 stamina recovery will continue to lose stamina
-	L.update_stamina()
+	if(ishostile(owner))
+		var/mob/living/simple_animal/hostile/L = owner
+		L.TemporarySpeedChange(4, duration)
+	if(iscarbon(owner))
+		var/mob/living/carbon/M = owner
+		M.add_movespeed_modifier(CARBON_HALFSPEED)
+
 	var/mutable_appearance/effectvisual = mutable_appearance('icons/obj/clockwork_objects.dmi', "vanguard")
 	effectvisual.pixel_x = -owner.pixel_x
 	effectvisual.pixel_y = -owner.pixel_y
@@ -1003,38 +1005,40 @@
 	owner.add_overlay(statuseffectvisual)
 
 /datum/status_effect/qliphothoverload/on_remove()
-	var/mob/living/simple_animal/hostile/L = owner
-	L.adjustStaminaLoss(-160, TRUE, TRUE)
-	L.stamina_recovery /= 0.01
-	L.update_stamina()
+	if(iscarbon(owner))
+		var/mob/living/carbon/M = owner
+		M.remove_movespeed_modifier(CARBON_HALFSPEED)
+
 	owner.cut_overlay(statuseffectvisual)
 	return ..()
 
 //update_stamina() is move_to_delay = (initial(move_to_delay) + (staminaloss * 0.06))
 // 100 stamina damage equals 6 additional move_to_delay. So 167*0.06 = 10.02
 
-/datum/status_effect/sunder_red
-	id = "sunder red armor"
+/datum/status_effect/rend_red
+	id = "rend red armor"
 	status_type = STATUS_EFFECT_UNIQUE
-	duration = 60 //3 seconds
+	duration = 60 //6 seconds
 	alert_type = null
 
-/datum/status_effect/sunder_red/on_apply()
+/datum/status_effect/rend_red/on_apply()
 	. = ..()
-	if(isanimal(owner))
-		var/mob/living/simple_animal/M = owner
-		M.damage_coeff[RED_DAMAGE] *= 1.2
+	if(!isanimal(owner))
+		qdel(src)
+		return
+	var/mob/living/simple_animal/M = owner
+	M.AddModifier(/datum/dc_change/rend/red)
 //20% damage increase. Hitting any abnormality that has a negative value will cause this
 //to be a buff to their healing.
 
-/datum/status_effect/sunder_red/on_remove()
+/datum/status_effect/rend_red/on_remove()
 	. = ..()
 	if(isanimal(owner))
 		var/mob/living/simple_animal/M = owner
-		M.damage_coeff[RED_DAMAGE] /= 1.2
+		M.RemoveModifier(/datum/dc_change/rend/red)
 
-	//White Damage Debuff
 
+//White Damage Debuff
 /datum/status_effect/rend_white
 	id = "rend white armor"
 	status_type = STATUS_EFFECT_UNIQUE
@@ -1043,13 +1047,17 @@
 
 /datum/status_effect/rend_white/on_apply()
 	. = ..()
+	if(!isanimal(owner))
+		qdel(src)
+		return
 	var/mob/living/simple_animal/M = owner
-	M.damage_coeff[WHITE_DAMAGE] *= 1.2
+	M.AddModifier(/datum/dc_change/rend/white)
 
 /datum/status_effect/rend_white/on_remove()
 	. = ..()
-	var/mob/living/simple_animal/M = owner
-	M.damage_coeff[WHITE_DAMAGE] /= 1.2
+	if(isanimal(owner))
+		var/mob/living/simple_animal/M = owner
+		M.RemoveModifier(/datum/dc_change/rend/white)
 
 //Black Damage Debuff
 
@@ -1061,10 +1069,102 @@
 
 /datum/status_effect/rend_black/on_apply()
 	. = ..()
+	if(!isanimal(owner))
+		qdel(src)
+		return
 	var/mob/living/simple_animal/M = owner
-	M.damage_coeff[BLACK_DAMAGE] *= 1.2
+	M.AddModifier(/datum/dc_change/rend/black)
 
 /datum/status_effect/rend_black/on_remove()
 	. = ..()
-	var/mob/living/simple_animal/M = owner
-	M.damage_coeff[BLACK_DAMAGE] /= 1.2
+	if(isanimal(owner))
+		var/mob/living/simple_animal/M = owner
+		M.RemoveModifier(/datum/dc_change/rend/black)
+
+#undef CARBON_HALFSPEED
+
+#define STATUS_EFFECT_LCBURN /datum/status_effect/stacking/lc_burn // Deals true damage every 5 sec, can't be applied to godmode (contained abos)
+/datum/status_effect/stacking/lc_burn
+	id = "lc_burn"
+	alert_type = /atom/movable/screen/alert/status_effect/lc_burn
+	max_stacks = 50
+	tick_interval = 5 SECONDS
+	consumed_on_threshold = FALSE
+	var/new_stack = FALSE
+	var/burn_res = 0
+	var/safety = TRUE
+
+/atom/movable/screen/alert/status_effect/lc_burn
+	name = "Burning"
+	desc = "You're on fire!!"
+	icon = 'ModularTegustation/Teguicons/status_sprites.dmi'
+	icon_state = "lc_burn"
+
+/datum/status_effect/stacking/lc_burn/can_have_status()
+	return (owner.stat != DEAD || !(owner.status_flags & GODMODE))
+
+/datum/status_effect/stacking/lc_burn/add_stacks(stacks_added)
+	..()
+	Update_Burn_Overlay(owner)
+	new_stack = TRUE
+
+//Deals true damage
+/datum/status_effect/stacking/lc_burn/tick()
+	if(!can_have_status())
+		qdel(src)
+	to_chat(owner, "<span class='warning'>The flame consumes you!!</span>")
+	owner.playsound_local(owner, 'sound/effects/book_burn.ogg', 50, TRUE)
+	Check_Resist(owner)
+	if(ishuman(owner))
+		owner.adjustBruteLoss(max(0, stacks - burn_res))
+	else
+		owner.adjustBruteLoss(stacks*4) // x4 on non humans (Average burn stack is 20. 80/5 sec, extra 16 pure dps)
+
+	//Deletes itself after 2 tick if no new burn stack was given
+	if(safety)
+		if(new_stack)
+			stacks = round(stacks/2)
+			new_stack = FALSE
+			Update_Burn_Overlay(owner)
+		else
+			qdel(src)
+
+//Check armor
+/datum/status_effect/stacking/lc_burn/proc/Check_Resist(mob/living/owner)
+	//I was hesistant to put a new var for this check in suit.dm, so I just check for each armor instead
+	var/mob/living/carbon/human/H = owner
+	var/obj/item/clothing/suit/armor/ego_gear/aleph/combust/C = H.get_item_by_slot(ITEM_SLOT_OCLOTHING)
+	var/obj/item/clothing/suit/armor/ego_gear/realization/desperation/D = H.get_item_by_slot(ITEM_SLOT_OCLOTHING)
+	if(istype(C))
+		burn_res = 15
+	else if(istype(D))
+		burn_res = 25
+	else
+		burn_res = 0
+
+//Update burn appearance
+/datum/status_effect/stacking/lc_burn/proc/Update_Burn_Overlay(mob/living/owner)
+	Check_Resist(owner)
+	if(stacks > burn_res && !(owner.on_fire) && ishuman(owner))
+		if(stacks >= 50)
+			owner.cut_overlay(mutable_appearance('icons/mob/OnFire.dmi', "Generic_mob_burning", -FIRE_LAYER))
+			owner.cut_overlay(mutable_appearance('icons/mob/OnFire.dmi', "Standing", -FIRE_LAYER))
+			owner.add_overlay(mutable_appearance('icons/mob/OnFire.dmi', "Standing", -FIRE_LAYER))
+		else
+			owner.cut_overlay(mutable_appearance('icons/mob/OnFire.dmi', "Standing", -FIRE_LAYER))
+			owner.cut_overlay(mutable_appearance('icons/mob/OnFire.dmi', "Generic_mob_burning", -FIRE_LAYER))
+			owner.add_overlay(mutable_appearance('icons/mob/OnFire.dmi', "Generic_mob_burning", -FIRE_LAYER))
+
+/datum/status_effect/stacking/lc_burn/on_remove()
+	if(!(owner.on_fire) && ishuman(owner))
+		owner.cut_overlay(mutable_appearance('icons/mob/OnFire.dmi', "Generic_mob_burning", -FIRE_LAYER))
+		owner.cut_overlay(mutable_appearance('icons/mob/OnFire.dmi', "Standing", -FIRE_LAYER))
+	..()
+
+//Mob Proc
+/mob/living/proc/apply_lc_burn(stacks)
+	var/datum/status_effect/stacking/lc_burn/B = src.has_status_effect(/datum/status_effect/stacking/lc_burn)
+	if(!B)
+		src.apply_status_effect(/datum/status_effect/stacking/lc_burn, stacks)
+	else
+		B.add_stacks(stacks)

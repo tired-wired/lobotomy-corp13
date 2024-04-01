@@ -36,7 +36,20 @@
 	name = "S-Corp Real Base of Operations"
 	room_id = "scorp"
 	mappath = "_maps/RandomRooms/backstreets/large_north/scorp.dmm"
-	stock = 1	//THE CANON PLACE OF SCORP!!!!
+	stock = 1	//THE CANON HQ OF SCORP!!!!
+
+/datum/map_template/random_room/backstreets/large_north/scorp_warehouse
+	name = "S-Corp spare warehouse"
+	room_id = "scorp_warehouse"
+	mappath = "_maps/RandomRooms/backstreets/large_north/scorp_warehouse.dmm"
+	stock = 3 //Scorp has a lot of these
+	weight = 4 //40% as common
+
+/datum/map_template/random_room/backstreets/large_north/lab_ln
+	name = "Laboratory - Large North"
+	room_id = "lab_ln"
+	mappath = "_maps/RandomRooms/backstreets/large_north/lab_ln.dmm"
+
 
 
 

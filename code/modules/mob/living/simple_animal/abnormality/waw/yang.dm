@@ -6,11 +6,11 @@
 	icon_living = "yang"
 	var/icon_breach = "yang_breach"
 	icon_dead = "yang_slain"
+	portrait = "yang"
 	is_flying_animal = TRUE
 	maxHealth = 800	//It is helpful and therefore weak.
 	health = 800
 	move_to_delay = 7
-	speed = 7
 	pixel_x = -16
 	base_pixel_x = -16
 	pixel_y = -8
@@ -24,25 +24,29 @@
 	work_damage_amount = 11
 	work_damage_type = WHITE_DAMAGE
 	work_chances = list(
-						ABNORMALITY_WORK_INSTINCT = 0,
-						ABNORMALITY_WORK_INSIGHT = list(0, 0, 40, 40, 40),
-						ABNORMALITY_WORK_ATTACHMENT = list(0, 0, 55, 55, 55),
-						ABNORMALITY_WORK_REPRESSION = list(0, 0, 40, 40, 40),
-						"Release" = 0
-						)
+		ABNORMALITY_WORK_INSTINCT = 0,
+		ABNORMALITY_WORK_INSIGHT = list(0, 0, 40, 40, 40),
+		ABNORMALITY_WORK_ATTACHMENT = list(0, 0, 55, 55, 55),
+		ABNORMALITY_WORK_REPRESSION = list(0, 0, 40, 40, 40),
+		"Release" = 0,
+	)
 	max_boxes = 20
 	success_boxes = 16
 	neutral_boxes = 9
 
 	ego_list = list(
 		/datum/ego_datum/weapon/assonance,
-		/datum/ego_datum/armor/assonance
-		)
+		/datum/ego_datum/armor/assonance,
+	)
 	gift_type = /datum/ego_gifts/assonance
 	abnormality_origin = ABNORMALITY_ORIGIN_ALTERED
 
+	grouped_abnos = list(
+		/mob/living/simple_animal/hostile/abnormality/yin = 5, // TAKE THE FISH. DO IT NOW.
+	)
+
 	//Melee
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 1, WHITE_DAMAGE = 0.2, BLACK_DAMAGE = 1.7, PALE_DAMAGE = 2)
+	damage_coeff = list(RED_DAMAGE = 1, WHITE_DAMAGE = 0.2, BLACK_DAMAGE = 1.7, PALE_DAMAGE = 2)
 	melee_damage_lower = 30
 	melee_damage_upper = 30
 	melee_damage_type = WHITE_DAMAGE
@@ -84,7 +88,6 @@
 		HealPulse()
 
 /mob/living/simple_animal/hostile/abnormality/yang/WorkChance(mob/living/carbon/human/user, chance, work_type)
-	. = ..()
 	return YinCheck() ? chance + 10 : chance
 
 /mob/living/simple_animal/hostile/abnormality/yang/proc/YinCheck()
@@ -135,24 +138,24 @@
 		icon_state = "yang_blow"
 		exploding = TRUE
 		SSlobotomy_events.yang_downed = TRUE
-		addtimer(CALLBACK(src, .proc/explode), explosion_timer)
+		addtimer(CALLBACK(src, PROC_REF(explode)), explosion_timer)
 		return
 	if(SSlobotomy_events.yang_downed)
 		return
-	INVOKE_ASYNC(src, .proc/BeDead)
+	INVOKE_ASYNC(src, PROC_REF(BeDead))
 
 /mob/living/simple_animal/hostile/abnormality/yang/proc/BeDead()
 	icon_state = icon_dead
 	playsound(src, 'sound/effects/magic.ogg', 60)
 	SSlobotomy_events.yang_downed = TRUE
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 0, WHITE_DAMAGE = 0, BLACK_DAMAGE = 0, PALE_DAMAGE = 0)
+	ChangeResistances(list(RED_DAMAGE = 0, WHITE_DAMAGE = 0, BLACK_DAMAGE = 0, PALE_DAMAGE = 0))
 	for(var/i = 1 to 12)
 		SLEEP_CHECK_DEATH(5 SECONDS)
 		if(SSlobotomy_events.yin_downed)
 			death()
 			return
 	adjustBruteLoss(-maxHealth)
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 1, WHITE_DAMAGE = 0.2, BLACK_DAMAGE = 1.7, PALE_DAMAGE = 2)
+	ChangeResistances(list(RED_DAMAGE = 1, WHITE_DAMAGE = 0.2, BLACK_DAMAGE = 1.7, PALE_DAMAGE = 2))
 	SSlobotomy_events.yang_downed = FALSE
 	icon_state = icon_breach
 
@@ -170,10 +173,7 @@
 			if(get_dist(src, T) > i)
 				continue
 			new /obj/effect/temp_visual/dir_setting/speedbike_trail(T)
-			for(var/mob/living/L in T)
-				if(L == src)
-					continue
-				L.apply_damage(explosion_damage, WHITE_DAMAGE, null, L.run_armor_check(null, WHITE_DAMAGE), spread_damage = TRUE)
+			HurtInTurf(T, list(), explosion_damage, WHITE_DAMAGE, hurt_mechs = TRUE)
 			all_turfs -= T
 		SLEEP_CHECK_DEATH(1)
 
@@ -196,7 +196,6 @@
 	hitscan = TRUE
 	damage = 70
 	damage_type = WHITE_DAMAGE
-	flag = WHITE_DAMAGE
 	muzzle_type = /obj/effect/projectile/muzzle/laser/white
 	tracer_type = /obj/effect/projectile/tracer/laser/white
 	impact_type = /obj/effect/projectile/impact/laser/white
@@ -215,11 +214,12 @@
 
 
 /mob/living/simple_animal/hostile/abnormality/yang/FailureEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	datum_reference.qliphoth_change(-1)
 	return
 
-/mob/living/simple_animal/hostile/abnormality/yang/BreachEffect(mob/living/carbon/human/user)
-	..()
+/mob/living/simple_animal/hostile/abnormality/yang/BreachEffect(mob/living/carbon/human/user, breach_type)
+	. = ..()
 	icon_state = icon_breach
 	SSlobotomy_events.yang_downed = FALSE
 

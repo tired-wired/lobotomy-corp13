@@ -1,5 +1,3 @@
-GLOBAL_LIST_EMPTY(zombies)
-
 /mob/living/simple_animal/hostile/abnormality/thunder_bird
 	name = "Thunderbird Altar"
 	desc = "An ominous totem built from the corpses of unusual creatures, crowned with the visage of its namesake in wood."
@@ -11,26 +9,25 @@ GLOBAL_LIST_EMPTY(zombies)
 	speak_emote = list("intones")
 	gender = NEUTER
 	var/list/thunder_bird_lines = list(
-				"Prostrate yourself! Harder!",
-				"Do you think I am happy, feather? Think again!",
-				"You folk, nothing but sacrifices. Sacrifices for me and everyone else here!",
-				"Your kind can never be forgiven!",
-				"Look around, you monsters! You've destroyed my people and nature!"
-				)
+		"Prostrate yourself! Harder!",
+		"Do you think I am happy, feather? Think again!",
+		"You folk, nothing but sacrifices. Sacrifices for me and everyone else here!",
+		"Your kind can never be forgiven!",
+		"Look around, you monsters! You've destroyed my people and nature!",
+	)
 	//Ideally it should only glow in its breached state
 	light_color = LIGHT_COLOR_BLUE
 	light_range = 0
 	light_power = 0
 
 	pixel_x = -16
-	base_pixel_x = -8
+	base_pixel_x = -16
 
 	//suppression info
 	maxHealth = 2000
 	health = 2000
-	speed = 2
 	move_to_delay = 4
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 0.8, WHITE_DAMAGE = 0.5, BLACK_DAMAGE = 1, PALE_DAMAGE = 0.7)
+	damage_coeff = list(RED_DAMAGE = 0.8, WHITE_DAMAGE = 0.5, BLACK_DAMAGE = 1, PALE_DAMAGE = 0.7)
 
 	//work info
 	threat_level = WAW_LEVEL
@@ -38,19 +35,20 @@ GLOBAL_LIST_EMPTY(zombies)
 	start_qliphoth = 3
 	//Unlike firebird, you're aiming for good results. The success rates are lower overall and it hates attachment work.
 	work_chances = list(
-						ABNORMALITY_WORK_INSTINCT = list(25, 25, 20, 20, 20),
-						ABNORMALITY_WORK_INSIGHT = list(30, 35, 35, 40, 45),
-						ABNORMALITY_WORK_ATTACHMENT = list(10, 10, 5, 5, 15),
-						ABNORMALITY_WORK_REPRESSION = list(50, 45, 50, 55, 55)
-						)
+		ABNORMALITY_WORK_INSTINCT = list(25, 25, 20, 20, 20),
+		ABNORMALITY_WORK_INSIGHT = list(30, 35, 35, 40, 45),
+		ABNORMALITY_WORK_ATTACHMENT = list(10, 10, 5, 5, 15),
+		ABNORMALITY_WORK_REPRESSION = list(50, 45, 50, 55, 55),
+	)
 	work_damage_amount = 10
 	work_damage_type = WHITE_DAMAGE
 
 	//change the E.G.O to "warring"
 	ego_list = list(
 		/datum/ego_datum/weapon/warring,
-		/datum/ego_datum/armor/warring
-		)
+		/datum/ego_datum/weapon/warring2,
+		/datum/ego_datum/armor/warring,
+	)
 	gift_type =  /datum/ego_gifts/warring
 	gift_message = "The totem somehow dons a seemingly ridiculous hat on your head."
 	abnormality_origin = ABNORMALITY_ORIGIN_ORIGINAL
@@ -69,6 +67,9 @@ GLOBAL_LIST_EMPTY(zombies)
 	aggro_vision_range = 30
 	ranged = TRUE//allows it to attempt charging without being in melee range
 
+	//Zombie list
+	var/list/spawned_mobs = list()
+
 	//range and attack speed for thunder bombs, taken from general bee
 	var/fire_cooldown_time = 3 SECONDS
 	var/fireball_range = 7
@@ -83,6 +84,12 @@ GLOBAL_LIST_EMPTY(zombies)
 	var/list/been_hit = list() // Don't get hit twice.
 
 /*---Simple Mob Procs---*/
+/mob/living/simple_animal/hostile/abnormality/thunder_bird/PostSpawn()
+	..()
+	if(locate(/obj/structure/tbird_perch) in get_turf(src))
+		return
+	new /obj/structure/tbird_perch(get_turf(src))
+
 //attempts to charge its target regardless of distance with a short cooldown. Can be spammed if distant enough.
 /mob/living/simple_animal/hostile/abnormality/thunder_bird/AttackingTarget()
 	if(charging)
@@ -139,9 +146,9 @@ GLOBAL_LIST_EMPTY(zombies)
 //delete the zombies on death
 /mob/living/simple_animal/hostile/abnormality/thunder_bird/Destroy()
 	..()
-	for(var/mob/living/simple_animal/hostile/thunder_zombie/Z in GLOB.zombies)
+	for(var/mob/living/simple_animal/hostile/thunder_zombie/Z in spawned_mobs)
 		QDEL_IN(Z, rand(3) SECONDS)
-		GLOB.zombies -= Z
+		spawned_mobs -= Z
 
 /*---Dash Stuff ---*/
 /mob/living/simple_animal/hostile/abnormality/thunder_bird/proc/thunder_bird_dash(target)
@@ -152,7 +159,7 @@ GLOBAL_LIST_EMPTY(zombies)
 	charging = TRUE
 	var/dir_to_target = get_dir(get_turf(src), get_turf(target))
 	been_hit = list()
-	addtimer(CALLBACK(src, .proc/do_dash, dir_to_target, 0), 1.5 SECONDS)//how long it takes for the dash to initiate. Set it back to 1 second when thunderbird gets directional sprites
+	addtimer(CALLBACK(src, PROC_REF(do_dash), dir_to_target, 0), 1.5 SECONDS)//how long it takes for the dash to initiate. Set it back to 1 second when thunderbird gets directional sprites
 	playsound(src, 'sound/abnormalities/thunderbird/tbird_charge.ogg', 100, 1)
 
 /mob/living/simple_animal/hostile/abnormality/thunder_bird/proc/do_dash(move_dir, times_ran)
@@ -167,14 +174,13 @@ GLOBAL_LIST_EMPTY(zombies)
 		stop_charge = TRUE
 	for(var/obj/structure/window/W in T.contents)
 		stop_charge = TRUE
-	for(var/obj/machinery/door/poddoor/P in T.contents)
-		stop_charge = TRUE
-		continue
+		break
 	for(var/obj/machinery/door/D in T.contents)
-		if(istype(D, /obj/machinery/door/poddoor))	//Should fix.
-			continue
+		if(!D.CanAStarPass(null))
+			stop_charge = TRUE
+			break
 		if(D.density)
-			D.open(2)
+			INVOKE_ASYNC(D, TYPE_PROC_REF(/obj/machinery/door, open), 2)
 	if(stop_charge)
 		playsound(src, 'sound/abnormalities/thunderbird/tbird_bolt.ogg', 75, 1)
 		charging = FALSE
@@ -182,30 +188,38 @@ GLOBAL_LIST_EMPTY(zombies)
 		return
 	forceMove(T)
 	playsound(src,"sound/abnormalities/thunderbird/tbird_peck.ogg", rand(50, 70), 1)
-	for(var/turf/TF in range(1, T))//Smash AOE visual
+	var/list/turfs_to_hit = range(1, T)
+	for(var/turf/TF in turfs_to_hit)//Smash AOE visual
 		new /obj/effect/temp_visual/smash_effect(TF)
-	for(var/mob/living/L in range(1, T))//damage applied to targets in range
-		if(L.z != z)
-			continue
+	for(var/mob/living/L in turfs_to_hit)//damage applied to targets in range
 		if(!faction_check_mob(L))
 			if(L in been_hit)
 				continue
-			visible_message("<span class='boldwarning'>[src] runs through [L]!</span>")
-			to_chat(L, "<span class='userdanger'>[src] rushes past you, arcing electricity throughout the way!</span>")
+			visible_message(span_boldwarning("[src] runs through [L]!"))
+			to_chat(L, span_userdanger("[src] rushes past you, arcing electricity throughout the way!"))
 			playsound(L, attack_sound, 75, 1)
 			var/turf/LT = get_turf(L)
 			new /obj/effect/temp_visual/kinetic_blast(LT)
-			L.apply_damage(100,BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE), spread_damage = TRUE)
+			L.apply_damage(100, BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE), spread_damage = TRUE)
 			if(ishuman(L))
 				var/mob/living/carbon/human/H = L
 				H.electrocute_act(1, src, flags = SHOCK_NOSTUN)
 			if(!(L in been_hit))
 				been_hit += L
-	addtimer(CALLBACK(src, .proc/do_dash, move_dir, (times_ran + 1)), 1)
+	for(var/obj/vehicle/sealed/mecha/V in turfs_to_hit)
+		if(V in been_hit)
+			continue
+		visible_message(span_boldwarning("[src] runs through [V]!"))
+		to_chat(V.occupants, span_userdanger("[src] rushes past you, arcing electricity throughout the way!"))
+		playsound(V, attack_sound, 75, 1)
+		V.take_damage(100, BLACK_DAMAGE, attack_dir = get_dir(V, src))
+		been_hit += V
+	addtimer(CALLBACK(src, PROC_REF(do_dash), move_dir, (times_ran + 1)), 1)
 
 /*---Qliphoth Counter---*/
 //counter goes up when you're above 80% hp on a good result, 50% down otherwise
 /mob/living/simple_animal/hostile/abnormality/thunder_bird/SuccessEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	if(user.health > (user.maxHealth*0.8))
 		datum_reference.qliphoth_change(1)
 		user.apply_damage(45, BLACK_DAMAGE, null, user.run_armor_check(null, BLACK_DAMAGE), spread_damage = TRUE)
@@ -220,17 +234,19 @@ GLOBAL_LIST_EMPTY(zombies)
 	return
 
 /mob/living/simple_animal/hostile/abnormality/thunder_bird/FailureEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	datum_reference.qliphoth_change(-1)
 	return
 
 /mob/living/simple_animal/hostile/abnormality/thunder_bird/NeutralEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	if(prob(50))
 		datum_reference.qliphoth_change(-1)
 	return
 
 /*---Breach effects---*/
-/mob/living/simple_animal/hostile/abnormality/thunder_bird/BreachEffect(mob/living/carbon/human/user)
-	..()
+/mob/living/simple_animal/hostile/abnormality/thunder_bird/BreachEffect(mob/living/carbon/human/user, breach_type)
+	. = ..()
 	name = "Thunderbird"
 	icon_living = "thunderbird_breach"
 	icon_state = icon_living
@@ -245,13 +261,12 @@ GLOBAL_LIST_EMPTY(zombies)
 /mob/living/simple_animal/hostile/abnormality/thunder_bird/proc/fireshell()
 	fire_cooldown = world.time + fire_cooldown_time
 	for(var/mob/living/carbon/human/L in livinginrange(fireball_range, src))
-		if(L.z != z)
-			continue
 		if(faction_check_mob(L, FALSE))
 			continue
 		if (targetAmount <= 2)
 			++targetAmount
-			new /obj/effect/thunderbolt(get_turf(L))//do this for the # of targets + 1
+			var/obj/effect/thunderbolt/E = new(get_turf(L.loc))//do this for the # of targets + 1
+			E.master = src
 	targetAmount = 0
 
 //thunderbolt objects
@@ -266,10 +281,11 @@ GLOBAL_LIST_EMPTY(zombies)
 	movement_type = PHASING | FLYING
 	var/boom_damage = 50
 	layer = POINT_LAYER	//Sprite should always be visible
+	var/mob/living/simple_animal/hostile/abnormality/thunder_bird/master
 
 /obj/effect/thunderbolt/Initialize()
 	. = ..()
-	addtimer(CALLBACK(src, .proc/explode), 3 SECONDS)
+	addtimer(CALLBACK(src, PROC_REF(explode)), 3 SECONDS)
 
 //Zombie conversion through lightning bombs
 /obj/effect/thunderbolt/proc/Convert(mob/living/carbon/human/H)
@@ -281,6 +297,8 @@ GLOBAL_LIST_EMPTY(zombies)
 	can_act = FALSE
 	playsound(src, 'sound/abnormalities/thunderbird/tbird_zombify.ogg', 45, FALSE, 5)
 	var/mob/living/simple_animal/hostile/thunder_zombie/C = new(get_turf(src))
+	master.spawned_mobs += C
+	C.master = master
 	if(!QDELETED(H))
 		C.name = "[H.real_name]"//applies the target's name and adds the name to its description
 		C.icon_state = "human_thunderbolt"
@@ -293,11 +311,14 @@ GLOBAL_LIST_EMPTY(zombies)
 //Smaller Scorched Girl bomb
 /obj/effect/thunderbolt/proc/explode()
 	playsound(get_turf(src), 'sound/abnormalities/thunderbird/tbird_bolt.ogg', 50, 0, 8)
-	for(var/mob/living/carbon/human/H in view(1, src))
-		H.apply_damage(boom_damage*1, BLACK_DAMAGE, null, H.run_armor_check(null, BLACK_DAMAGE), spread_damage = TRUE)
+	var/list/turfs_to_check = view(1, src)
+	for(var/mob/living/carbon/human/H in turfs_to_check)
+		H.apply_damage(boom_damage, BLACK_DAMAGE, null, H.run_armor_check(null, BLACK_DAMAGE), spread_damage = TRUE)
 		H.electrocute_act(1, src, flags = SHOCK_NOSTUN)
 		if(H.health < 0)
 			Convert(H)
+	for(var/obj/vehicle/V in turfs_to_check)
+		V.take_damage(boom_damage, BLACK_DAMAGE)
 	new /obj/effect/temp_visual/tbirdlightning(get_turf(src))
 	var/datum/effect_system/smoke_spread/S = new
 	S.set_up(0, get_turf(src))	//Smoke shouldn't really obstruct your vision
@@ -322,8 +343,8 @@ GLOBAL_LIST_EMPTY(zombies)
 	/*Zombie Stats */
 	health = 250//subject to change; they all die when thunderbird is suppressed
 	maxHealth = 250
-	obj_damage = 300
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 1, WHITE_DAMAGE = 1.5, BLACK_DAMAGE = 0.5, PALE_DAMAGE = 0.5)
+	obj_damage = 60
+	damage_coeff = list(RED_DAMAGE = 1, WHITE_DAMAGE = 1.5, BLACK_DAMAGE = 0.5, PALE_DAMAGE = 0.5)
 	melee_damage_type = BLACK_DAMAGE
 	melee_damage_lower = 20
 	melee_damage_upper = 30
@@ -333,8 +354,48 @@ GLOBAL_LIST_EMPTY(zombies)
 	stat_attack = HARD_CRIT
 	del_on_death = FALSE
 	density = TRUE
+	guaranteed_butcher_results = list(/obj/item/food/badrecipe = 1)
 	var/list/breach_affected = list()
 	var/can_act = TRUE
+	var/mob/living/simple_animal/hostile/abnormality/thunder_bird/master
+
+//Zombie conversion from zombie kills
+/mob/living/simple_animal/hostile/thunder_zombie/AttackingTarget()
+	. = ..()
+	if(!can_act)
+		return
+	if(!ishuman(target))
+		return
+	var/mob/living/carbon/human/H = target
+	if(H.stat >= SOFT_CRIT || H.health < 0)
+		Convert(H)
+
+/mob/living/simple_animal/hostile/thunder_zombie/Initialize()
+	. = ..()
+	playsound(get_turf(src), 'sound/abnormalities/thunderbird/tbird_charge.ogg', 50, 1, 4)
+	base_pixel_x = rand(-6,6)
+	pixel_x = base_pixel_x
+	base_pixel_y = rand(-6,6)
+	pixel_y = base_pixel_y
+
+/mob/living/simple_animal/hostile/thunder_zombie/Life()
+	. = ..()
+	if(!.) // Dead
+		return FALSE
+	if(status_flags & GODMODE)
+		return FALSE
+
+//reanimated if thunderbird isn't suppressed within 30 seconds
+/mob/living/simple_animal/hostile/thunder_zombie/death(gibbed)
+	addtimer(CALLBACK(src, PROC_REF(resurrect)), 30 SECONDS)
+	return ..()
+
+/mob/living/simple_animal/hostile/thunder_zombie/proc/resurrect()
+	if(QDELETED(src))
+		return
+	revive(full_heal = TRUE, admin_revive = FALSE)
+	visible_message(span_boldwarning("[src] staggers back on their feet!"))
+	playsound(get_turf(src), 'sound/abnormalities/thunderbird/tbird_bolt.ogg', 50, 0, 8)
 
 //Zombie conversion from other zombies
 /mob/living/simple_animal/hostile/thunder_zombie/proc/Convert(mob/living/carbon/human/H)
@@ -353,49 +414,29 @@ GLOBAL_LIST_EMPTY(zombies)
 		if(!H.real_name)
 			return FALSE
 		var/mob/living/simple_animal/hostile/thunder_zombie/C = new(get_turf(src))
+		if(master)
+			master.spawned_mobs += C
+			C.master = master
 		C.name = "[H.real_name]"//applies the target's name and adds the name to its description
 		C.icon_state = "human_thunderbolt"
 		C.icon_living = "human_thunderbolt"
 		C.desc = "What appears to be [H.real_name], only charred and screaming incoherently..."
 		C.gender = H.gender
+		C.faction = src.faction
 		H.gib()
 	can_act = TRUE
 
-//Zombie conversion from zombie kills
-/mob/living/simple_animal/hostile/thunder_zombie/AttackingTarget()
-	. = ..()
-	if(!can_act)
-		return
-	if(!ishuman(target))
-		return
-	var/mob/living/carbon/human/H = target
-	if(H.stat >= SOFT_CRIT || H.health < 0)
-		Convert(H)
-
-/mob/living/simple_animal/hostile/thunder_zombie/Initialize()
-	. = ..()
-	GLOB.zombies += src
-	playsound(get_turf(src), 'sound/abnormalities/thunderbird/tbird_charge.ogg', 50, 1, 4)
-	base_pixel_x = rand(-6,6)
-	pixel_x = base_pixel_x
-	base_pixel_y = rand(-6,6)
-	pixel_y = base_pixel_y
-
-/mob/living/simple_animal/hostile/thunder_zombie/Life()
-	. = ..()
-	if(!.) // Dead
-		return FALSE
-	if(status_flags & GODMODE)
-		return FALSE
-
-//reanimated if thunderbird isn't suppressed within 30 seconds
-/mob/living/simple_animal/hostile/thunder_zombie/death(gibbed)
-	addtimer(CALLBACK(src, .proc/resurrect), 30 SECONDS)
-	return ..()
-
-/mob/living/simple_animal/hostile/thunder_zombie/proc/resurrect()
-	if(QDELETED(src))
-		return
-	revive(full_heal = TRUE, admin_revive = FALSE)
-	visible_message("<span class='boldwarning'>[src] staggers back on their feet!</span>")
-	playsound(get_turf(src), 'sound/abnormalities/thunderbird/tbird_bolt.ogg', 50, 0, 8)
+//The perch
+/obj/structure/tbird_perch
+	name = "thunderbird altar"
+	desc = "An idol bloodied by the creature who stood upon it.."
+	icon = 'ModularTegustation/Teguicons/64x64.dmi'
+	icon_state = "thunderbird_altar"
+	pixel_x = -16
+	base_pixel_x = -16
+	anchored = TRUE
+	density = FALSE
+	layer = TURF_LAYER
+	plane = FLOOR_PLANE
+	resistance_flags = INDESTRUCTIBLE
+	mouse_opacity = 0

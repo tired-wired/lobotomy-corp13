@@ -56,7 +56,7 @@
 	return FALSE
 
 /obj/attackby(obj/item/I, mob/living/user, params)
-	return ..() || ((obj_flags & CAN_BE_HIT) && I.attack_obj(src, user))
+	return ..() || ((obj_flags & CAN_BE_HIT) && I.attack_obj(src, user, params))
 
 /mob/living/attackby(obj/item/I, mob/living/user, params)
 	if(..())
@@ -103,7 +103,7 @@
 	if(force && M == user && user.client)
 		user.client.give_award(/datum/award/achievement/misc/selfouch, user)
 
-	user.do_attack_animation(M)
+	user.do_attack_animation(M, no_effect = !run_item_attack_animation)
 	M.attacked_by(src, user)
 
 	log_combat(user, M, "attacked", src.name, "(INTENT: [uppertext(user.a_intent)]) (DAMTYPE: [uppertext(damtype)])")
@@ -111,7 +111,7 @@
 
 
 /// The equivalent of the standard version of [/obj/item/proc/attack] but for object targets.
-/obj/item/proc/attack_obj(obj/O, mob/living/user)
+/obj/item/proc/attack_obj(obj/O, mob/living/user, params)
 	if(SEND_SIGNAL(src, COMSIG_ITEM_ATTACK_OBJ, O, user) & COMPONENT_CANCEL_ATTACK_CHAIN)
 		return
 	if(item_flags & NOBLUDGEON)
@@ -130,13 +130,17 @@
 					"<span class='danger'>You hit [src] with [I]!</span>", null, COMBAT_MESSAGE_RANGE)
 		//only witnesses close by and the victim see a hit message.
 		log_combat(user, src, "attacked", I)
-	take_damage(I.force, I.damtype, I.armortype, 1)
+	take_damage(I.force, I.damtype, 1)
 
 /mob/living/attacked_by(obj/item/I, mob/living/user)
 	send_item_attack_message(I, user)
 	if(I.force)
-		var/justice_mod = 1 + (get_attribute_level(user, JUSTICE_ATTRIBUTE)/100)
-		apply_damage((I.force * justice_mod), I.damtype, white_healable = TRUE)
+		var/justice_mod = 1 + (get_modified_attribute_level(user, JUSTICE_ATTRIBUTE)/100)
+		var/damage = I.force * justice_mod
+		if(istype(I, /obj/item/ego_weapon))
+			var/obj/item/ego_weapon/theweapon = I
+			damage *= theweapon.force_multiplier
+		apply_damage(damage, I.damtype, white_healable = TRUE)
 		if(I.damtype in list(RED_DAMAGE, BLACK_DAMAGE, PALE_DAMAGE))
 			if(prob(33))
 				I.add_mob_blood(src)
@@ -147,10 +151,22 @@
 		return TRUE //successful attack
 
 /mob/living/simple_animal/attacked_by(obj/item/I, mob/living/user)
-	if(!attack_threshold_check(I.force, I.damtype, I.armortype, FALSE))
+	if(!attack_threshold_check(I.force, I.damtype, FALSE))
 		playsound(loc, 'sound/weapons/tap.ogg', I.get_clamped_volume(), TRUE, -1)
 	else
 		return ..()
+
+/obj/vehicle/sealed/mecha/attacked_by(obj/item/I, mob/living/user)
+	if(I.force)
+		user.visible_message(span_danger("[user] hits [src] with [I]!"), span_danger("You hit [src] with [I]!"), null, COMBAT_MESSAGE_RANGE)
+		log_combat(user, src, "attacked", I)
+		var/justice_mod = 1 + (get_modified_attribute_level(user, JUSTICE_ATTRIBUTE)/100)
+		var/damage = I.force * justice_mod
+		if(istype(I, /obj/item/ego_weapon))
+			var/obj/item/ego_weapon/theweapon = I
+			damage *= theweapon.force_multiplier
+		take_damage(damage, I.damtype, attack_dir = get_dir(src, user))
+		return TRUE
 
 /**
  * Last proc in the [/obj/item/proc/melee_attack_chain]

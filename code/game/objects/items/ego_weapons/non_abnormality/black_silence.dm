@@ -10,16 +10,16 @@
 	righthand_file = 'icons/mob/inhands/weapons/black_silence_righthand.dmi'
 	force = 1
 	damtype = BLACK_DAMAGE
-	armortype = BLACK_DAMAGE
+
 	attack_verb_continuous = list("taps", "pats")
 	attack_verb_simple = list("tap", "pat")
 	hitsound = 'sound/effects/hit_punch.ogg'
 	attribute_requirements = list(
-							FORTITUDE_ATTRIBUTE = 120,
-							PRUDENCE_ATTRIBUTE = 120,
-							TEMPERANCE_ATTRIBUTE = 120,
-							JUSTICE_ATTRIBUTE = 120
-							)
+		FORTITUDE_ATTRIBUTE = 120,
+		PRUDENCE_ATTRIBUTE = 120,
+		TEMPERANCE_ATTRIBUTE = 120,
+		JUSTICE_ATTRIBUTE = 120,
+	)
 	actions_types = list(/datum/action/item_action/toggle_iff)
 	var/special_cooldown
 	var/special_cooldown_time
@@ -37,7 +37,7 @@
 	. = ..()
 	if(!user)
 		return
-	RegisterSignal(user, COMSIG_MOB_SHIFTCLICKON, .proc/DoChecks)
+	RegisterSignal(user, COMSIG_MOB_SHIFTCLICKON, PROC_REF(DoChecks))
 
 /obj/item/ego_weapon/black_silence_gloves/Destroy(mob/user)
 	UnregisterSignal(user, COMSIG_MOB_SHIFTCLICKON)
@@ -61,10 +61,10 @@
 /obj/item/ego_weapon/black_silence_gloves/proc/toggle_iff(mob/living/user)
 	if(iff)
 		iff = FALSE
-		to_chat(user,"<span class='warning'>You will now attack everything indiscriminately!</span>")
+		to_chat(user,span_warning("You will now attack everything indiscriminately!"))
 	else
 		iff = TRUE
-		to_chat(user,"<span class='warning'>You will now only attack enemies!</span>")
+		to_chat(user,span_warning("You will now only attack enemies!"))
 
 /obj/item/ego_weapon/black_silence_gloves/proc/dash(mob/living/user, turf/target_turf)
 	var/list/line_turfs = list(get_turf(user))
@@ -104,9 +104,9 @@
 // Radial menu
 /obj/item/ego_weapon/black_silence_gloves/proc/exchange_armaments(mob/user)
 	if(exchange_cooldown > world.time)
-		to_chat(user, "<span class='notice'>Your gloves are still recharging, keep hitting enemies to charge it faster.</span>")
+		to_chat(user, span_notice("Your gloves are still recharging, keep hitting enemies to charge it faster."))
 		return
-	
+
 	var/list/display_names = list()
 	var/list/armament_icons = list()
 	for(var/arms in typesof(/obj/item/ego_weapon/black_silence_gloves))
@@ -121,7 +121,7 @@
 				armament_icons += list(initial(armstype.name) = image(icon = initial(armstype.icon), icon_state = initial(armstype.locked_state)))
 
 	armament_icons = sortList(armament_icons)
-	var/choice = show_radial_menu(user, src , armament_icons, custom_check = CALLBACK(src, .proc/check_menu, user), radius = 42, require_near = TRUE)
+	var/choice = show_radial_menu(user, src , armament_icons, custom_check = CALLBACK(src, PROC_REF(check_menu), user), radius = 42, require_near = TRUE)
 	if(!choice || !check_menu(user))
 		return
 
@@ -133,18 +133,18 @@
 		Y.unlocked_list = unlocked_list
 		if(!(Y.name in unlocked_list) && Y.name != origin_name)
 			Y.unlocked_list += Y.name
-			addtimer(CALLBACK(Y, .proc/furioso_reset), furioso_wait)
+			addtimer(CALLBACK(Y, PROC_REF(furioso_reset)), furioso_wait)
 			Y.furioso_time = world.time + furioso_wait
 		else
 			var/time_left = max((furioso_time - world.time), 0)
-			addtimer(CALLBACK(Y, .proc/furioso_reset), time_left)
+			addtimer(CALLBACK(Y, PROC_REF(furioso_reset)), time_left)
 			Y.furioso_time = world.time + time_left
 		Y.iff = iff
 		qdel(src)
 		user.put_in_hands(Y)
 		if(!(unlocked) && Y.unlocked_list.len > 8)
 			playsound(playsound(user, 'sound/weapons/black_silence/unlock.ogg', 100, 1))
-			to_chat(user,"<span class='userdanger'>You are ready to unleash Furioso!</span>")
+			to_chat(user,span_userdanger("You are ready to unleash Furioso!"))
 			Y.unlocked = TRUE
 		if(unlocked)
 			Y.unlocked = TRUE
@@ -179,7 +179,7 @@
 		if(unlocked_list.len > 8)
 			furioso(user, target)
 		else
-			to_chat(user,"<span class='userdanger'>You haven't used all of Black Silence's Weapons!</span>")
+			to_chat(user,span_userdanger("You haven't used all of Black Silence's Weapons!"))
 
 // switching weapon increases damage dealt. Annoying but high damage, you're supposed to keep changing weapons anyway
 /obj/item/ego_weapon/black_silence_gloves/zelkova
@@ -187,7 +187,7 @@
 	desc = "Mace and Axe once belonged to the Black Silence."
 	special = "SHIFT+CLICK to attack with mace. Simultaneously switching your attacks will increase attack speed. Resets if you fail to do so"
 	icon_state = "zelkova"
-	
+
 	special_cooldown_time = 12
 	force = 90
 	var/weapon
@@ -267,11 +267,11 @@
 		if(0)
 			playsound(user, 'sound/weapons/black_silence/mace.ogg', 80, 1)
 			dash_count += 1
-			addtimer(CALLBACK(src, .proc/dash_attack, user, target), 3)
+			addtimer(CALLBACK(src, PROC_REF(dash_attack), user, target), 3)
 		if(1)
 			playsound(user, 'sound/weapons/black_silence/axe.ogg', 80, 1)
 			dash_count += 1
-			addtimer(CALLBACK(src, .proc/dash_attack, user, target), 3)
+			addtimer(CALLBACK(src, PROC_REF(dash_attack), user, target), 3)
 		if(2)
 			playsound(user, 'sound/weapons/black_silence/shortsword.ogg', 90, 1)
 			dash_count = 0
@@ -311,39 +311,47 @@
 	if (block == 0)
 		var/mob/living/carbon/human/shield_user = user
 		if(shield_user.physiology.armor.bomb) //"We have NOTHING that should be modifying this, so I'm using it as an existant parry checker." - Ancientcoders
-			to_chat(shield_user,"<span class='warning'>You're still off-balance!</span>")
+			to_chat(shield_user,span_warning("You're still off-balance!"))
 			return FALSE
 		for(var/obj/machinery/computer/abnormality/AC in range(1, shield_user))
 			if(AC.datum_reference.working) // No blocking during work.
-				to_chat(shield_user,"<span class='notice'>You cannot defend yourself from responsibility!</span>")
+				to_chat(shield_user,span_notice("You cannot defend yourself from responsibility!"))
 				return FALSE
 		block = TRUE
 		block_success = FALSE
-		shield_user.physiology.armor = shield_user.physiology.armor.modifyRating(red = reductions[1], white = reductions[2], black = reductions[3], pale = reductions[4], bomb = 1) //bomb defense must be over 0
-		RegisterSignal(user, COMSIG_MOB_APPLY_DAMGE, .proc/AnnounceBlock)
-		addtimer(CALLBACK(src, .proc/DisableBlock, shield_user), 1 SECONDS)
-		to_chat(user,"<span class='userdanger'>You attempt to parry the attack!</span>")
+		shield_user.physiology.armor = shield_user.physiology.armor.modifyRating(bomb = 1) //bomb defense must be over 0
+		shield_user.physiology.red_mod *= max(0.001, (1 - ((reductions[1]) / 100)))
+		shield_user.physiology.white_mod *= max(0.001, (1 - ((reductions[2]) / 100)))
+		shield_user.physiology.black_mod *= max(0.001, (1 - ((reductions[3]) / 100)))
+		shield_user.physiology.pale_mod *= max(0.001, (1 - ((reductions[4]) / 100)))
+		RegisterSignal(user, COMSIG_MOB_APPLY_DAMGE, PROC_REF(AnnounceBlock))
+		addtimer(CALLBACK(src, PROC_REF(DisableBlock), shield_user), 1 SECONDS)
+		to_chat(user, span_userdanger("You attempt to parry the attack!"))
 		return TRUE
 
 /obj/item/ego_weapon/black_silence_gloves/old_boys/proc/DisableBlock(mob/living/carbon/human/user)
-	user.physiology.armor = user.physiology.armor.modifyRating(red = -reductions[1], white = -reductions[2], black = -reductions[3], pale = -reductions[4], bomb = -1)
+	user.physiology.armor = user.physiology.armor.modifyRating(bomb = -1)
+	user.physiology.red_mod /= max(0.001, (1 - ((reductions[1]) / 100)))
+	user.physiology.white_mod /= max(0.001, (1 - ((reductions[2]) / 100)))
+	user.physiology.black_mod /= max(0.001, (1 - ((reductions[3]) / 100)))
+	user.physiology.pale_mod /= max(0.001, (1 - ((reductions[4]) / 100)))
 	UnregisterSignal(user, COMSIG_MOB_APPLY_DAMGE)
 	buff_check = FALSE
-	addtimer(CALLBACK(src, .proc/BlockCooldown, user), 3 SECONDS)
+	addtimer(CALLBACK(src, PROC_REF(BlockCooldown), user), 3 SECONDS)
 	if (!block_success)
 		BlockFail(user)
 
 /obj/item/ego_weapon/black_silence_gloves/old_boys/proc/BlockCooldown(mob/living/carbon/human/user)
 	block = FALSE
-	to_chat(user,"<span class='nicegreen'>You rearm your hammer</span>")
+	to_chat(user,span_nicegreen("You rearm your hammer"))
 
 /obj/item/ego_weapon/black_silence_gloves/old_boys/proc/BlockFail(mob/living/carbon/human/user)
-	to_chat(user,"<span class='warning'>Your stance is widened.</span>")
+	to_chat(user,span_warning("Your stance is widened."))
 	force = 50
-	addtimer(CALLBACK(src, .proc/RemoveDebuff, user), 2 SECONDS)
+	addtimer(CALLBACK(src, PROC_REF(RemoveDebuff), user), 2 SECONDS)
 
 /obj/item/ego_weapon/black_silence_gloves/old_boys/proc/RemoveDebuff(mob/living/carbon/human/user)
-	to_chat(user,"<span class='nicegreen'>You recollect your stance.</span>")
+	to_chat(user,span_nicegreen("You recollect your stance."))
 	force = 80
 
 /obj/item/ego_weapon/black_silence_gloves/old_boys/proc/AnnounceBlock(mob/living/carbon/human/source, damage, damagetype, def_zone)
@@ -351,7 +359,7 @@
 	block_success = TRUE
 
 	playsound(get_turf(src), 'sound/weapons/black_silence/guard.ogg', 50, 0, 7)
-	source.visible_message("<span class='userdanger'>[source.real_name] parried the attack!</span>")
+	source.visible_message(span_userdanger("[source.real_name] parried the attack!"))
 	exchange_cooldown -= 100
 	if(!(buff_check))
 		parry_buff = TRUE
@@ -404,9 +412,9 @@
 	attack(target, user)
 
 /obj/item/ego_weapon/black_silence_gloves/allas/attack(mob/living/M, mob/living/user)
-	if(!CanUseEgo(user))
-		return
 	. = ..()
+	if(!.)
+		return FALSE
 	exchange_cooldown -= 20
 	force = 70
 	hitsound = 'sound/weapons/ego/spear1.ogg'
@@ -446,14 +454,7 @@
 		playsound(T, 'sound/weapons/black_silence/longsword_atk.ogg', 50, 1)
 		for (var/i = 0; i < 3; i++)
 			new /obj/effect/temp_visual/smash_effect(T)
-			for(var/mob/living/L in T)
-				if(iff)
-					if(user.faction_check_mob(L))
-						continue
-				else
-					if(L == user)
-						continue
-				L.apply_damage(50, BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE))
+			for(var/mob/living/L in user.HurtInTurf(T, list(), 50, BLACK_DAMAGE, check_faction = TRUE, hurt_mechs = TRUE))
 				exchange_cooldown -= 10
 			sleep(0.25 SECONDS)
 
@@ -491,7 +492,7 @@
 	locked_state = "logic_locked"
 
 /obj/item/ego_weapon/black_silence_gloves/logic/Initialize()
-	RegisterSignal(src, COMSIG_PROJECTILE_ON_HIT, .proc/projectile_hit)
+	RegisterSignal(src, COMSIG_PROJECTILE_ON_HIT, PROC_REF(projectile_hit))
 	..()
 
 /obj/item/ego_weapon/black_silence_gloves/logic/Special(mob/living/user, atom/target)
@@ -574,20 +575,12 @@
 	var/atom/throw_target = get_edge_target_turf(target, user.dir)
 	for(var/turf/T in area_of_effect)
 		new /obj/effect/temp_visual/smash_effect(T)
-		for(var/mob/living/L in T)
-			if(iff)
-				if(user.faction_check_mob(L))
-					continue
-			else
-				if(L == user)
-					continue
-			if(L in been_hit)
-				continue
+		var/list/new_hits = user.HurtInTurf(T, been_hit, 100, BLACK_DAMAGE, check_faction = TRUE, hurt_mechs = TRUE) - been_hit
+		been_hit += new_hits
+		for(var/mob/living/L in new_hits)
 			if(!L.anchored)
 				var/whack_speed = (prob(60) ? 1 : 4)
 				L.throw_at(throw_target, 1, whack_speed, user)
-			been_hit += L
-			L.apply_damage(100, BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE), spread_damage = TRUE)
 			exchange_cooldown -= 30
 
 /obj/item/ego_weapon/black_silence_gloves/logic/afterattack(atom/target, mob/living/user, proximity_flag, clickparams)
@@ -611,7 +604,7 @@
 
 /obj/item/ego_weapon/black_silence_gloves/logic/proc/projectile_hit(atom/fired_from, atom/movable/firer, atom/target, Angle)
 	SIGNAL_HANDLER
-	
+
 	if(isliving(target))
 		exchange_cooldown -= 10
 		if(combo_count < 2 && special_cooldown > world.time)
@@ -634,7 +627,7 @@
 	speed = 0.3
 	icon_state = "logic"
 	damage_type = BLACK_DAMAGE
-	flag = BLACK_DAMAGE
+
 
 /obj/projectile/ego_bullet/atelier_logic/iff
 	nodamage = TRUE
@@ -741,7 +734,7 @@
 			D.alpha = min(150 + i*15, 255)
 			animate(D, alpha = 0, time = 2 + i*2)
 			playsound(user, 'sound/weapons/black_silence/evasion.ogg', 50, 1)
-	
+
 /obj/item/ego_weapon/black_silence_gloves/crystal/proc/dash_attack(mob/living/user, atom/target)
 	user.dir = get_dir(user, target)
 	var/turf/target_turf = get_step(get_turf(target), get_dir(src, target))
@@ -751,7 +744,7 @@
 	playsound(user, 'sound/weapons/black_silence/duelsword.ogg', 50, 1)
 	if(dash_count < 1)
 		L.apply_damage(60, BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE))
-		addtimer(CALLBACK(src, .proc/dash_attack, user, target), 5)
+		addtimer(CALLBACK(src, PROC_REF(dash_attack), user, target), 5)
 		new /obj/effect/temp_visual/smash_effect(F)
 		dash_count += 1
 	else
@@ -883,7 +876,9 @@
 		var/list/been_hit = list()
 		for(var/turf/T in area_of_effect)
 			new /obj/effect/temp_visual/smash_effect(T)
-			for(var/mob/living/L in T)
+			var/list/new_hits = user.HurtInTurf(T, been_hit, 300, BLACK_DAMAGE, check_faction = TRUE, hurt_mechs = TRUE) - been_hit
+			been_hit += new_hits
+			for(var/mob/living/L in new_hits)
 				var/atom/throw_target = get_edge_target_turf(target, get_dir(user, L))
 				if(iff)
 					if(user.faction_check_mob(L))
@@ -896,8 +891,6 @@
 				if(!L.anchored)
 					var/whack_speed = (prob(60) ? 1 : 4)
 					L.throw_at(throw_target, 2, whack_speed, user)
-				been_hit += L
-				L.apply_damage(300, BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE), spread_damage = TRUE)
 				exchange_cooldown -= 50
 	else
 		to_chat(user, "<span class='spider'><b>Your attack was interrupted!</b></span>")
@@ -930,7 +923,6 @@
 			target.Move(target_turf)
 		playsound(user, 'sound/weapons/black_silence/revolver.ogg', 100, 1)
 		sleep(3.5)
-	
 	//Spear
 	icon_state = "allas"
 	target_turf = get_step(get_turf(target), get_dir(user, target))
@@ -949,7 +941,6 @@
 	if(!target.anchored)
 		target.Move(target_turf)
 	sleep(4)
-	
 	//LongSword
 	icon_state = "mook"
 	playsound(user, 'sound/weapons/black_silence/longsword_start.ogg', 100, 1)
@@ -977,7 +968,6 @@
 		if(i == 2)
 			playsound(user, 'sound/weapons/black_silence/shortsword.ogg', 100, 1)
 			sleep(3)
-			
 	//Mace & Axe
 	icon_state = "zelkova"
 	user.dir = get_dir(user, target)
@@ -1017,7 +1007,6 @@
 	if(!target.anchored)
 		target.Move(target_turf)
 	sleep(4)
-	
 	//Durandal
 	icon_state = "durandal"
 	target_turf = get_step(get_turf(target), get_dir(target, user))
@@ -1040,7 +1029,7 @@
 		target.Move(target_turf)
 	L.apply_damage(1500, BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE)) //this went on for 5 sec, so 300 DPS as the final attack
 	sleep(10)
-	
+
 	furioso_end(user, target)
 
 /obj/item/ego_weapon/black_silence_gloves/proc/furioso_start(mob/living/user, mob/living/target)

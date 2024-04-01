@@ -47,7 +47,7 @@
 /obj/structure/aquarium/Initialize(mapload)
 	. = ..()
 	update_icon()
-	RegisterSignal(src,COMSIG_PARENT_ATTACKBY, .proc/feed_feedback)
+	RegisterSignal(src,COMSIG_PARENT_ATTACKBY, PROC_REF(feed_feedback))
 
 /obj/structure/aquarium/Entered(atom/movable/arrived, atom/old_loc, list/atom/old_locs)
 	. = ..()
@@ -279,6 +279,6 @@
 	new /obj/item/aquarium_prop/rocks(src)
 	new /obj/item/aquarium_prop/seaweed(src)
 
-	new /obj/item/food/fish/goldfish(src)
-	new /obj/item/food/fish/angelfish(src)
-	new /obj/item/food/fish/guppy(src)
+	new /obj/item/food/fish/fresh_water(src)
+	new /obj/item/food/fish/fresh_water/angelfish(src)
+	new /obj/item/food/fish/fresh_water/guppy(src)

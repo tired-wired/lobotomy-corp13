@@ -25,8 +25,6 @@
 	fire_sound = 'sound/weapons/gun/rifle/leveraction.ogg'
 	fire_delay = 5
 	damtype = RED_DAMAGE
-	armortype = RED_DAMAGE
-
 	attribute_requirements = list(
 							FORTITUDE_ATTRIBUTE = 80
 							)
@@ -83,18 +81,20 @@
 	attribute_requirements = list(
 							TEMPERANCE_ATTRIBUTE = 80
 							)
+	var/cached_multiplier
 
 /obj/item/gun/ego_gun/magicbullet/before_firing(atom/target, mob/user)
+	if(cached_multiplier)
+		projectile_damage_multiplier = cached_multiplier
 	fire_delay = initial(fire_delay)
 	var/mob/living/carbon/human/myman = user
-	var/obj/item/clothing/suit/armor/ego_gear/magicbullet/Y = myman.get_item_by_slot(ITEM_SLOT_OCLOTHING)
+	var/obj/item/clothing/suit/armor/ego_gear/he/magicbullet/Y = myman.get_item_by_slot(ITEM_SLOT_OCLOTHING)
 	var/obj/item/clothing/suit/armor/ego_gear/realization/bigiron/Z = myman.get_item_by_slot(ITEM_SLOT_OCLOTHING)
 	if(istype(Y))
 		fire_delay = 15
 	if(istype(Z))
-		projectile_damage_multiplier = 2.5
-	else
-		projectile_damage_multiplier = 1
+		cached_multiplier = projectile_damage_multiplier
+		projectile_damage_multiplier *= 2.5
 	..()
 
 
@@ -312,11 +312,10 @@
 	inhand_icon_state = "featherofhonor"
 	ammo_type = /obj/item/ammo_casing/caseless/ego_feather
 	weapon_weight = WEAPON_HEAVY
-	special = "This weapon deals 35 white in melee."
-	force = 35
+	special = "This weapon deals 42 white in melee."
+	force = 42
 	damtype = WHITE_DAMAGE
-	armortype = WHITE_DAMAGE
-	fire_delay = 25
+	fire_delay = 12
 	attribute_requirements = list(
 							FORTITUDE_ATTRIBUTE = 60,
 							PRUDENCE_ATTRIBUTE = 60
@@ -331,7 +330,6 @@
 	weapon_weight = WEAPON_HEAVY
 	special = "Upon hit the targets RED vulnerability is increased by 0.2."
 	damtype = RED_DAMAGE
-	armortype = RED_DAMAGE
 	fire_delay = 30 //5 less than the Rend Armor status effect
 	fire_sound = 'sound/misc/moist_impact.ogg'
 	attribute_requirements = list(
@@ -501,7 +499,8 @@
 	icon_state = "hypocrisy"
 	inhand_icon_state = "hypocrisy"
 	worn_icon_state = "hypocrisy"
-	special = "Use this weapon in hand to place a trap."
+	special = "Use this weapon in hand to place a trap that inflicts \
+		50 RED damage and alerts the user of the area it was triggered."
 	ammo_type = /obj/item/ammo_casing/caseless/ego_hypocrisy
 	weapon_weight = WEAPON_HEAVY
 	fire_delay = 25

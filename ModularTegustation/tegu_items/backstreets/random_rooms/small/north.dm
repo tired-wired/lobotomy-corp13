@@ -20,4 +20,33 @@
 	room_id = "sweeper_solo"
 	mappath = "_maps/RandomRooms/backstreets/small_north/sweeper_solo.dmm"
 
+/datum/map_template/random_room/backstreets/small_north/smallarmory
+	name = "Small Armory - Small North"
+	room_id = "smallarmory"
+	mappath = "_maps/RandomRooms/backstreets/small_north/smallarmory.dmm"
 
+/datum/map_template/random_room/backstreets/small_north/coffee_break
+	name = "Gcorp Coffee"
+	room_id = "coffee_break"
+	mappath = "_maps/RandomRooms/backstreets/small_north/coffee_break.dmm"
+
+
+/datum/map_template/random_room/backstreets/small_north/kcorp_stash_sna
+	name = "KCorp Stash - Small North A"
+	room_id = "kcorp_stash_sna"
+	mappath = "_maps/RandomRooms/backstreets/small_north/kcorp_stash_sna.dmm"
+
+/datum/map_template/random_room/backstreets/small_north/ash_exhibit
+    name = "Ashwalker Exhibit - Small North"
+    room_id = "ash_exhibit"
+    mappath = "_maps/RandomRooms/backstreets/small_north/ash_exhibit.dmm"
+
+/datum/map_template/random_room/backstreets/small_north/pet_store
+    name = "Pet Store - Small North"
+    room_id = "pet_store"
+    mappath = "_maps/RandomRooms/backstreets/small_north/pet_store.dmm"
+
+/datum/map_template/random_room/backstreets/small_north/snow_forest
+    name = "Snow Forest - Small North"
+    room_id = "snow_forest"
+    mappath = "_maps/RandomRooms/backstreets/small_north/snow_forest.dmm"

@@ -8,6 +8,7 @@
 	var/icon_aggro = "cat_breached"
 	var/icon_friendly = "cat_breached_friendly"
 	icon_dead = "cat_breached"  //defeated icon? Maybe someday.
+	portrait = "puss_in_boots"
 	maxHealth = 1000
 	health = 1000
 	threat_level = HE_LEVEL
@@ -15,7 +16,6 @@
 	del_on_death = FALSE
 	attack_sound = 'sound/weapons/ego/rapier1.ogg'
 	melee_damage_type = RED_DAMAGE
-	armortype = RED_DAMAGE
 	melee_damage_lower = 5
 	melee_damage_upper = 15
 	attack_verb_continuous = "slashes"
@@ -28,30 +28,35 @@
 		ABNORMALITY_WORK_INSTINCT = 60,
 		ABNORMALITY_WORK_INSIGHT = 0,
 		ABNORMALITY_WORK_ATTACHMENT = 45,
-		ABNORMALITY_WORK_REPRESSION = list(50, 45, 40, 40, 40)
-		)
+		ABNORMALITY_WORK_REPRESSION = list(50, 45, 40, 40, 40),
+	)
 	work_damage_amount = 10
 	work_damage_type = RED_DAMAGE
 
 	ego_list = list(
 		/datum/ego_datum/weapon/inheritance,
-		/datum/ego_datum/armor/inheritance
+		/datum/ego_datum/armor/inheritance,
 	)
 	gift_type =  /datum/ego_gifts/inheritance
 	abnormality_origin = "Artbook"
 
+	//Work/misc Vars
+	var/list/stats = list(
+		FORTITUDE_ATTRIBUTE,
+		PRUDENCE_ATTRIBUTE,
+		TEMPERANCE_ATTRIBUTE,
+		JUSTICE_ATTRIBUTE,
+	)
+	pet_bonus = "meows" //saves a few lines of code by allowing funpet() to be called by attack_hand()
 	var/mob/living/carbon/human/blessed_human = null
 	var/friendly
+	var/ignored = FALSE // If you ignore a meltdown it gets mad
+	//Breach Vars
 	var/return_timer
 	var/finisher_cooldown = 0
 	var/finisher_cooldown_time = 60 SECONDS
 	var/can_act = TRUE
 	var/finishing = FALSE
-	var/list/stats = list(FORTITUDE_ATTRIBUTE,
-			PRUDENCE_ATTRIBUTE,
-			TEMPERANCE_ATTRIBUTE,
-			JUSTICE_ATTRIBUTE)
-	pet_bonus = "meows" //saves a few lines of code by allowing funpet() to be called by attack_hand()
 
 //Init stuff
 /mob/living/simple_animal/hostile/abnormality/puss_in_boots/Initialize()
@@ -68,7 +73,7 @@
 	if(!IsContained(src))
 		return
 	if(user.stat != DEAD && !blessed_human && istype(user))
-		if(get_user_level(user) > 2)
+		if(get_user_level(user) >= 2)
 			say("I cannot teach you anything, human.")
 			return
 		blessed_human = user
@@ -78,13 +83,14 @@
 		say("At last, someone worthy!")
 
 /mob/living/simple_animal/hostile/abnormality/puss_in_boots/proc/Blessing(mob/living/carbon/human/user)
-	var/datum/status_effect/chosen/C = blessed_human.has_status_effect(/datum/status_effect/chosen)
-	if(!C)
-		user.apply_status_effect(STATUS_EFFECT_CHOSEN)
-		RegisterSignal(user, COMSIG_LIVING_DEATH, .proc/BlessedDeath)
-		RegisterSignal(user, COMSIG_HUMAN_INSANE, .proc/BlessedDeath)
-		RegisterSignal(user, COMSIG_WORK_STARTED, .proc/OnWorkStart)
-		RegisterSignal(SSdcs, COMSIG_GLOB_ABNORMALITY_BREACH, .proc/OnAbnoBreach)
+	var/datum/status_effect/chosen/status_holder = blessed_human.has_status_effect(/datum/status_effect/chosen)
+	if(status_holder)
+		return
+	user.apply_status_effect(STATUS_EFFECT_CHOSEN)
+	RegisterSignal(user, COMSIG_LIVING_DEATH, PROC_REF(BlessedDeath))
+	RegisterSignal(user, COMSIG_HUMAN_INSANE, PROC_REF(BlessedDeath))
+	RegisterSignal(user, COMSIG_WORK_STARTED, PROC_REF(OnWorkStart))
+	RegisterSignal(SSdcs, COMSIG_GLOB_ABNORMALITY_BREACH, PROC_REF(OnAbnoBreach))
 
 /mob/living/simple_animal/hostile/abnormality/puss_in_boots/proc/BlessedDeath(datum/source, gibbed)
 	SIGNAL_HANDLER
@@ -111,17 +117,29 @@
 		return
 	if(abno == src)
 		if(client)
-			to_chat(src, "<span class='notice'>You start feeling a bit impatient.</span>")
+			to_chat(src, span_notice("You start feeling a bit impatient."))
 		else
 			manual_emote("perks up for a moment, then settles back down, looking annoyed.")
 		return
 	if(datum_reference.qliphoth_meter > 1)
 		if(client)
-			to_chat(src, "<span class='notice'>You hear something...</span>")
+			to_chat(src, span_notice("You hear something..."))
 		else
 			manual_emote("perks up slightly, as though it hears something.")
 	datum_reference.qliphoth_change(-1)
 
+/mob/living/simple_animal/hostile/abnormality/puss_in_boots/MeltdownStart()
+	. = ..()
+	ignored = TRUE
+
+/mob/living/simple_animal/hostile/abnormality/puss_in_boots/ZeroQliphoth(mob/living/carbon/human/user)
+	if(ignored && blessed_human)
+		BlessedDeath(blessed_human)
+		return
+	..()
+
+/mob/living/simple_animal/hostile/abnormality/puss_in_boots/PostWorkEffect(mob/living/carbon/human/user, work_type, pe, work_time)
+	ignored = FALSE
 
 //Breach
 /mob/living/simple_animal/hostile/abnormality/puss_in_boots/Life()
@@ -129,7 +147,7 @@
 	if(!blessed_human)
 		return
 
-	if(get_user_level(blessed_human) > 2) //no buffing to get ahead
+	if(get_user_level(blessed_human) >= 2) //no buffing to get ahead
 		BlessedDeath(blessed_human)
 		return
 
@@ -143,13 +161,13 @@
 		return FALSE
 	..()
 
-/mob/living/simple_animal/hostile/abnormality/puss_in_boots/BreachEffect(mob/living/carbon/human/user)
-	..()
+/mob/living/simple_animal/hostile/abnormality/puss_in_boots/BreachEffect(mob/living/carbon/human/user, breach_type)
+	. = ..()
 	desc = "He's got a sword!"
 	if(friendly)
 		fear_level = ZAYIN_LEVEL
 		health = 300 //He's pretty tough at max HP
-		addtimer(CALLBACK(src, .proc/escape), 45 SECONDS)
+		addtimer(CALLBACK(src, PROC_REF(escape)), 45 SECONDS)
 		GoToFriend()
 		density = FALSE
 		icon_state = icon_friendly
@@ -159,7 +177,7 @@
 		density = TRUE
 		fear_level = HE_LEVEL
 		FearEffect()
-		src.visible_message("<span class='warning'>[src] is looking around, eyes wild with rage!</span>")
+		src.visible_message(span_warning("[src] is looking around, eyes wild with rage!"))
 	icon_state = icon_aggro
 	update_icon()
 	faction = list("hostile") //he's gone feral!
@@ -185,9 +203,9 @@
 		playsound(src, 'sound/weapons/fwoosh.ogg', 250, FALSE, 4)
 		forceMove(T)
 		if(friendly)
-			src.visible_message("<span class='nicegreen'>[src] looks ready to help [blessed_human]!</span>")
+			src.visible_message(span_nicegreen("[src] looks ready to help [blessed_human]!"))
 		else
-			src.visible_message("<span class='warning'>[src] looks angrily at [blessed_human]!</span>")
+			src.visible_message(span_warning("[src] looks angrily at [blessed_human]!"))
 		LoseTarget()
 		for(var/mob/living/enemy in oview(src, vision_range))
 			if(enemy == blessed_human)
@@ -213,7 +231,7 @@
 	finishing = TRUE
 	face_atom(target)
 	T.add_overlay(icon('icons/effects/effects.dmi', "zorowarning"))
-	addtimer(CALLBACK(T, .atom/proc/cut_overlay, \
+	addtimer(CALLBACK(T, TYPE_PROC_REF(/atom, cut_overlay), \
 							icon('icons/effects/effects.dmi', "zorowarning")), 40)
 	say("En garde!")
 	SLEEP_CHECK_DEATH(40)
@@ -223,7 +241,7 @@
 		if(jump_turf.is_blocked_turf(exclude_mobs = TRUE))
 			jump_turf = get_turf(target)
 		T.add_overlay(icon('icons/effects/effects.dmi', "zoro"))
-		addtimer(CALLBACK(T, .atom/proc/cut_overlay, \
+		addtimer(CALLBACK(T, TYPE_PROC_REF(/atom, cut_overlay), \
 								icon('icons/effects/effects.dmi', "zoro")), 14)
 		playsound(target, 'sound/abnormalities/pussinboots/slash.ogg', 50, 0, 2)
 		forceMove(jump_turf)
@@ -244,16 +262,18 @@
 		return
 	icon_state = icon_aggro
 
-/mob/living/simple_animal/hostile/abnormality/puss_in_boots/proc/Finisher(mob/living/target)
+/mob/living/simple_animal/hostile/abnormality/puss_in_boots/proc/Finisher(mob/living/target) //This is super easy to avoid
 	target.apply_damage(50, PALE_DAMAGE, null, target.run_armor_check(null, RED_DAMAGE)) //50% of your health in red damage
-	to_chat(target,"<span class='danger'>[src] is trying to cut you in half!</span>")
+	to_chat(target, span_danger("[src] is trying to cut you in half!"))
 	if(!ishuman(target))
 		target.apply_damage(100, PALE_DAMAGE, null, target.run_armor_check(null, PALE_DAMAGE)) //bit more than usual DPS in pale damage
 		return
 	if(target.health > 0)
 		return
 	var/mob/living/carbon/human/H = target
-	H.gib() //maybe we can get a special gib effect for cutting someone in half someday.
+	new /obj/effect/temp_visual/human_horizontal_bisect(get_turf(H))
+	H.set_lying_angle(360) //gunk code I know, but it is the simplest way to override gib_animation() without touching other code. Also looks smoother.
+	H.gib()
 
 /mob/living/simple_animal/hostile/abnormality/puss_in_boots/OpenFire()
 	if(!can_act)
@@ -275,7 +295,7 @@
 	if(!friendly)
 		return
 	if(finishing) //we dont wanna interrupt
-		addtimer(CALLBACK(src, .proc/escape), 7 SECONDS)
+		addtimer(CALLBACK(src, PROC_REF(escape)), 7 SECONDS)
 		return
 	death()
 
@@ -293,7 +313,7 @@
 	if(!ishuman(owner))
 		return
 	var/mob/living/carbon/human/user = owner
-	to_chat(user, "<span class='nicegreen'>You feel protected.</span>")
+	to_chat(user, span_nicegreen("You feel protected."))
 	user.add_overlay(mutable_appearance('ModularTegustation/Teguicons/tegu_effects.dmi', "inheritance", -MUTATIONS_LAYER))
 	StatUpdate(user)
 	user.physiology.red_mod *= 0.8

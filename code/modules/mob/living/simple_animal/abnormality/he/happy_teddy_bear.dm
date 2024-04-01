@@ -6,6 +6,7 @@
 	icon = 'ModularTegustation/Teguicons/32x48.dmi'
 	icon_state = "teddy"
 	icon_living = "teddy"
+	portrait = "happy_teddy_bear"
 	// adding this for when it drops you
 	layer = BELOW_OBJ_LAYER
 	maxHealth = 200
@@ -15,7 +16,7 @@
 		ABNORMALITY_WORK_INSTINCT = 0,
 		ABNORMALITY_WORK_INSIGHT = list(40, 45, 45, 35, 35),
 		ABNORMALITY_WORK_ATTACHMENT = list(60, 60, 60, 50, 45),
-		ABNORMALITY_WORK_REPRESSION = list(40, 45, 45, 40, 35)
+		ABNORMALITY_WORK_REPRESSION = list(40, 45, 45, 40, 35),
 	)
 	work_damage_amount = 10
 	work_damage_type = WHITE_DAMAGE
@@ -29,8 +30,8 @@
 	var/hugging = FALSE
 	ego_list = list(
 		/datum/ego_datum/weapon/paw,
-		/datum/ego_datum/armor/paw
-		)
+		/datum/ego_datum/armor/paw,
+	)
 	gift_type =  /datum/ego_gifts/bearpaw
 	abnormality_origin = ABNORMALITY_ORIGIN_LOBOTOMY
 
@@ -39,11 +40,19 @@
 	user.Stun(30 SECONDS)
 	step_towards(user, src)
 	sleep(0.5 SECONDS)
+	if(QDELETED(user))
+		src.hugging = FALSE
+		last_worker = null
+		return
 	step_towards(user, src)
 	sleep(0.5 SECONDS)
+	if(QDELETED(user))
+		src.hugging = FALSE
+		last_worker = null
+		return
 	src.buckle_mob(user, force = TRUE, check_loc = FALSE)
 	src.icon_state = "teddy_hug"
-	src.visible_message("<span class='warning'>[src] hugs [user]!</span>")
+	src.visible_message(span_warning("[src] hugs [user]!"))
 	var/last_pinged = 0
 	var/time_strangled = 0
 	while(user.stat != DEAD)
@@ -51,14 +60,19 @@
 			user.death(gibbed=FALSE)
 			break
 		if(world.time > last_pinged + 5 SECONDS)
-			to_chat(user, "<span class='userdanger'>[src] is suffocating you!</span>")
+			to_chat(user, span_userdanger("[src] is suffocating you!"))
 			last_pinged = world.time
 		user.adjustOxyLoss(10, updating_health=TRUE, forced=TRUE)
 		time_strangled++
 		SLEEP_CHECK_DEATH(1 SECONDS)
+		if(QDELETED(user))
+			src.hugging = FALSE
+			last_worker = null
+			src.icon_state = "teddy"
+			return
 	src.unbuckle_mob(user, force=TRUE)
 	src.icon_state = "teddy"
-	src.visible_message("<span class='warning'>[src] drops [user] to the ground!</span>")
+	src.visible_message(span_warning("[src] drops [user] to the ground!"))
 	src.hugging = FALSE
 	last_worker = null
 

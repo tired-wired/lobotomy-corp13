@@ -5,7 +5,7 @@
 	icon_state = "tresmetal"
 	w_class = WEIGHT_CLASS_BULKY
 	var/quality = 0
-	var/resource_type = null
+	var/resource_type = /obj/item/tresmetal
 	var/heated_type = /obj/item/hot_tresmetal
 
 /obj/item/tresmetal/Initialize()
@@ -15,8 +15,23 @@
 /obj/item/tresmetal/attack_self(mob/user)
 	if(!resource_type)
 		return ..()
-	to_chat(user, "<span class='notice'>You break [src] down into it's original parts.</span>")
-	new resource_type(get_turf(user))
+	if(type == resource_type && quality == 0)
+		return ..()
+	to_chat(user, span_notice("You break [src] down into it's original parts."))
+	var/make_amount = quality > 0 ? quality * 10 : 1
+	if(make_amount > 1)
+		var/obj/item/storage/box/materials_disposable/MD = new(get_turf(src))
+		var/datum/component/storage/ST = MD.GetComponent(/datum/component/storage)
+		for(var/I = 1 to make_amount)
+			var/obj/item/D = new resource_type(get_turf(user))
+			if(ST.can_be_inserted(D, TRUE, null)) // Try to put in the current one
+				ST.handle_item_insertion(D, TRUE, null)
+				continue
+			MD = new(get_turf(src)) // Make a new one if full
+			ST = MD.GetComponent(/datum/component/storage)
+			ST.handle_item_insertion(D, TRUE, null)
+	else
+		new resource_type(get_turf(user))
 	qdel(src)
 	return
 
@@ -53,7 +68,7 @@
 	var/cool_timer
 
 /obj/item/hot_tresmetal/Initialize()
-	cool_timer = addtimer(CALLBACK(src, .proc/cooling), 5 MINUTES, TIMER_STOPPABLE)
+	cool_timer = addtimer(CALLBACK(src, PROC_REF(cooling)), 5 MINUTES, TIMER_STOPPABLE)
 	..()
 	name = "heated " + initial(original_mat.name)
 	desc += " Put it on an anvil and hit with a hammer to work it."
@@ -61,7 +76,7 @@
 /obj/item/hot_tresmetal/proc/cooling()
 	var/obj/item/tresmetal/cooled = new original_mat(get_turf(src))
 	cooled.SetQuality(quality)
-	visible_message("<span class='notice'>The [src] cooled down to it's original form.</span>")
+	visible_message(span_notice("The [src] cooled down to it's original form."))
 	qdel(src)
 
 /obj/item/hot_tresmetal/proc/SetQuality(value)
@@ -85,7 +100,7 @@
 	..()
 	if(istype(I, /obj/item/forginghammer))
 		if(!(locate(/obj/structure/table/anvil) in loc))
-			to_chat(user, "<span class='warning'>You need this to be on an anvil to work it.</span>")
+			to_chat(user, span_warning("You need this to be on an anvil to work it."))
 			return
 
 		if(!do_after(user, 10 SECONDS))
@@ -112,7 +127,7 @@
 /obj/item/hot_tresmetal/proc/spawn_option(obj/item/choice)
 	var/obj/item/creation = new choice(get_turf(src))
 	OnCreation(creation)
-	visible_message("<span class='notice'>The tresmetal is worked into a [creation.name].</span>")
+	visible_message(span_notice("The tresmetal is worked into a [creation.name]."))
 	deltimer(cool_timer)
 	qdel(src)
 
@@ -124,7 +139,6 @@
 	creation.attack_speed *= attack_mult
 	if(type_override)
 		creation.damtype = type_override
-		creation.armortype = type_override
 		creation.type_overriden = TRUE
 	if(hitsound_override)
 		creation.hitsound = hitsound_override
@@ -243,11 +257,14 @@
 	if(!..())
 		return
 	creation.AddComponent(/datum/component/edible,\
-		initial_reagents = list(/datum/reagent/consumable/nutriment/protein = 20*(quality+1), /datum/reagent/consumable/nutriment/vitamin = 6*(quality+1)),\
-		foodtypes = MEAT,\
-		volume = 1000,\
-		tastes = list("pain", "meat", "hunger"),\
-		eat_time = 0)
+		initial_reagents = list(
+			/datum/reagent/consumable/nutriment/protein = 20*(quality+1),
+			/datum/reagent/consumable/nutriment/vitamin = 6*(quality+1)),\
+			foodtypes = MEAT,\
+			volume = 1000,\
+			tastes = list("pain", "meat", "hunger"),\
+			eat_time = 0,\
+		)
 	return
 
 

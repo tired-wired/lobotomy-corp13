@@ -4,6 +4,7 @@
 	icon = 'ModularTegustation/Teguicons/tegumobs.dmi'
 	icon_state = "helper"
 	icon_living = "helper"
+	portrait = "helper"
 	maxHealth = 1000
 	health = 1000
 	rapid_melee = 4
@@ -14,43 +15,55 @@
 	stat_attack = HARD_CRIT
 	melee_damage_lower = 20
 	melee_damage_upper = 25
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 0.5, WHITE_DAMAGE = 1, BLACK_DAMAGE = 2, PALE_DAMAGE = 2)
+	damage_coeff = list(RED_DAMAGE = 0.5, WHITE_DAMAGE = 1, BLACK_DAMAGE = 2, PALE_DAMAGE = 2)
 	speak_emote = list("states")
 	vision_range = 14
 	aggro_vision_range = 20
-	attack_action_types = list(/datum/action/innate/abnormality_attack/helper_dash)
-
 	can_breach = TRUE
 	threat_level = HE_LEVEL
 	start_qliphoth = 2
 	work_chances = list(
-						ABNORMALITY_WORK_INSTINCT = list(50, 55, 55, 50, 45),
-						ABNORMALITY_WORK_INSIGHT = list(0, 0, -30, -60, -90),
-						ABNORMALITY_WORK_ATTACHMENT = list(35, 40, 40, 35, 35),
-						ABNORMALITY_WORK_REPRESSION = list(50, 55, 55, 50, 45)
-						)
+		ABNORMALITY_WORK_INSTINCT = list(50, 55, 55, 50, 45),
+		ABNORMALITY_WORK_INSIGHT = list(0, 0, -30, -60, -90),
+		ABNORMALITY_WORK_ATTACHMENT = list(35, 40, 40, 35, 35),
+		ABNORMALITY_WORK_REPRESSION = list(50, 55, 55, 50, 45),
+	)
 	work_damage_amount = 10
 	work_damage_type = RED_DAMAGE
 
 	ego_list = list(
 		/datum/ego_datum/weapon/grinder,
-		/datum/ego_datum/armor/grinder
-		)
+		/datum/ego_datum/armor/grinder,
+	)
 	gift_type =  /datum/ego_gifts/grinder
 	gift_message = "Contamination scan complete. Initiating cleaning protocol."
 	abnormality_origin = ABNORMALITY_ORIGIN_LOBOTOMY
+
+	grouped_abnos = list(
+		/mob/living/simple_animal/hostile/abnormality/we_can_change_anything = 1.5,
+		/mob/living/simple_animal/hostile/abnormality/cleaner = 1.5,
+	)
+
 	var/charging = FALSE
 	var/dash_num = 50
 	var/dash_cooldown = 0
 	var/dash_cooldown_time = 8 SECONDS
 	var/list/been_hit = list() // Don't get hit twice.
+	var/stuntime = 5 SECONDS
 
-/datum/action/innate/abnormality_attack/helper_dash
-	name = "Helper Dash"
-	icon_icon = 'ModularTegustation/Teguicons/tegumobs.dmi'
-	button_icon_state = "helper"
-	chosen_message = "<span class='colossus'>You will now dash in that direction.</span>"
-	chosen_attack_num = 1
+	//PLAYABLES ATTACKS
+	attack_action_types = list(/datum/action/innate/abnormality_attack/toggle/helper_dash_toggle)
+
+/datum/action/innate/abnormality_attack/toggle/helper_dash_toggle
+	name = "Toggle Dash"
+	button_icon_state = "helper_toggle0"
+	chosen_attack_num = 2
+	chosen_message = span_colossus("You won't dash anymore.")
+	button_icon_toggle_activated = "helper_toggle1"
+	toggle_attack_num = 1
+	toggle_message = span_colossus("You will now dash in that direction.")
+	button_icon_toggle_deactivated = "helper_toggle0"
+
 
 /mob/living/simple_animal/hostile/abnormality/helper/AttackingTarget()
 	if(charging)
@@ -106,7 +119,7 @@
 		para = FALSE
 	been_hit = list()
 	SpinAnimation(1.8 SECONDS, 1, para)
-	addtimer(CALLBACK(src, .proc/do_dash, dir_to_target, 0), 1.5 SECONDS)
+	addtimer(CALLBACK(src, PROC_REF(do_dash), dir_to_target, 0), 1.5 SECONDS)
 	playsound(src, 'sound/abnormalities/helper/rise.ogg', 100, 1)
 
 /mob/living/simple_animal/hostile/abnormality/helper/proc/do_dash(move_dir, times_ran)
@@ -125,13 +138,14 @@
 	for(var/obj/structure/window/W in T.contents)
 		W.obj_destruction("spinning blades")
 	for(var/obj/machinery/door/D in T.contents)
-		if(istype(D, /obj/machinery/door/poddoor))
-			continue
+		if(!D.CanAStarPass(null))
+			stop_charge = TRUE
+			break
 		if(D.density)
-			D.open(2)
+			INVOKE_ASYNC(D, TYPE_PROC_REF(/obj/machinery/door, open), 2)
 	if(stop_charge)
 		playsound(src, 'sound/abnormalities/helper/disable.ogg', 75, 1)
-		SLEEP_CHECK_DEATH(5 SECONDS)
+		SLEEP_CHECK_DEATH(stuntime)
 		charging = FALSE
 		return
 	forceMove(T)
@@ -139,43 +153,49 @@
 	if(move_dir in list(WEST, NORTHWEST, SOUTHWEST))
 		para = FALSE
 	SpinAnimation(3, 1, para)
-	playsound(src,"sound/abnormalities/helper/move0[pick(1,2,3)].ogg", rand(50, 70), 1)
-	for(var/mob/living/L in range(1, T))
+	playsound(src, "sound/abnormalities/helper/move0[pick(1,2,3)].ogg", rand(50, 70), 1)
+	var/list/hit_turfs = range(1, T)
+	for(var/mob/living/L in hit_turfs)
 		if(!faction_check_mob(L))
 			if(L in been_hit)
 				continue
-			visible_message("<span class='boldwarning'>[src] runs through [L]!</span>")
-			to_chat(L, "<span class='userdanger'>[src] pierces you with their spinning blades!</span>")
+			visible_message(span_boldwarning("[src] runs through [L]!"))
+			to_chat(L, span_userdanger("[src] pierces you with their spinning blades!"))
 			playsound(L, attack_sound, 75, 1)
 			var/turf/LT = get_turf(L)
 			new /obj/effect/temp_visual/kinetic_blast(LT)
-			if(ishuman(L))
-				var/mob/living/carbon/human/H = L
-				// Ugly code
-				var/affecting = get_bodypart(ran_zone(pick(BODY_ZONE_CHEST, BODY_ZONE_PRECISE_L_HAND, BODY_ZONE_PRECISE_R_HAND, BODY_ZONE_L_LEG, BODY_ZONE_R_LEG)))
-				var/armor = H.run_armor_check(affecting, armortype, armour_penetration = src.armour_penetration)
-				H.apply_damage(60, src.melee_damage_type, affecting, armor, wound_bonus = src.wound_bonus, bare_wound_bonus = src.bare_wound_bonus, sharpness = src.sharpness)
-			else
-				L.adjustRedLoss(120)
+			var/damage = 60
+			if(!ishuman(L))
+				damage = 120
+			L.apply_damage(damage, melee_damage_type, null, L.run_armor_check(null, melee_damage_type), spread_damage = TRUE)
 			if(L.stat >= HARD_CRIT)
 				L.gib()
 				continue
-			if(!(L in been_hit))
-				been_hit += L
-	addtimer(CALLBACK(src, .proc/do_dash, move_dir, (times_ran + 1)), 1)
+			been_hit += L
+	for(var/obj/vehicle/sealed/mecha/V in hit_turfs)
+		if(V in been_hit)
+			continue
+		visible_message(span_boldwarning("[src] runs through [V]!"))
+		to_chat(V.occupants, span_userdanger("[src] pierces your mech with their spinning blades!"))
+		playsound(V, attack_sound, 75, 1)
+		V.take_damage(60, melee_damage_type, attack_dir = get_dir(V, src))
+		been_hit += V
+	addtimer(CALLBACK(src, PROC_REF(do_dash), move_dir, (times_ran + 1)), 1)
 
 /* Work effects */
 /mob/living/simple_animal/hostile/abnormality/helper/NeutralEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	if(prob(40))
 		datum_reference.qliphoth_change(-1)
 	return
 
 /mob/living/simple_animal/hostile/abnormality/helper/FailureEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	if(prob(80))
 		datum_reference.qliphoth_change(-1)
 	return
 
-/mob/living/simple_animal/hostile/abnormality/helper/BreachEffect(mob/living/carbon/human/user)
+/mob/living/simple_animal/hostile/abnormality/helper/BreachEffect(mob/living/carbon/human/user, breach_type)
 	..()
 	update_icon()
 	GiveTarget(user)

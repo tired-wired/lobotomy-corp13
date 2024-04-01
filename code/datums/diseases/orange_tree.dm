@@ -13,7 +13,7 @@
 
 /datum/disease/orange_tree/after_add()
 	affected_mob.playsound_local(get_turf(affected_mob), 'sound/abnormalities/orangetree/light3.ogg', 100, 0)
-	RegisterSignal(affected_mob, COMSIG_MOB_APPLY_DAMGE, .proc/DamageCheck)
+	RegisterSignal(affected_mob, COMSIG_MOB_APPLY_DAMGE, PROC_REF(DamageCheck))
 
 /datum/disease/orange_tree/cure()
 	UnregisterSignal(affected_mob, COMSIG_MOB_APPLY_DAMGE)
@@ -24,6 +24,12 @@
 	if(H.sanity_lost)
 		SanityCheck(TRUE)
 	return ..()
+
+/datum/disease/orange_tree/spread() //no airborne spread from a dead person
+	if(affected_mob.stat >= HARD_CRIT || affected_mob.health < 0)
+		cure(FALSE)
+		return
+	..()
 
 /datum/disease/orange_tree/stage_act()
 	. = ..()
@@ -49,7 +55,7 @@
 		return
 
 	if(!HAS_AI_CONTROLLER_TYPE(H, /datum/ai_controller/insane/murder/orangetree))
-		addtimer(CALLBACK(src, .proc/SanityCheck, FALSE), 1) //Gives sanity time to update
+		addtimer(CALLBACK(src, PROC_REF(SanityCheck), FALSE), 1) //Gives sanity time to update
 
 /datum/disease/orange_tree/proc/DamageCheck(mob/living/carbon/human/affected_mob, damage, damagetype, def_zone)
 	SIGNAL_HANDLER

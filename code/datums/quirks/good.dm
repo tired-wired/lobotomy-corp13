@@ -3,10 +3,10 @@
 
 /datum/quirk/resistant
 	name = "Damage Resistant"
-	desc = "You take 5% less damage from all sources"
+	desc = "You take 5% less damage from all sources."
 	value = 4
-	gain_text = "<span class='notice'>You feel a bit more resistant to damage than others.</span>"
-	medical_record_text = "This patient is observed to be able to withstand a little bit more damage before going unconcious."
+	gain_text = "<span class='notice'>You feel a little tougher than before.</span>"
+	medical_record_text = "Patient has an unnatural endurance and resistance to injuries."
 	hardcore_value = -8
 
 /datum/quirk/resistant/on_spawn()
@@ -18,10 +18,10 @@
 
 /datum/quirk/skilled
 	name = "Prepared for Anything"
-	desc = "You start with an extra 5 permanent attribute points in every aspect."
+	desc = "You start with an additional 5 Attribute points in every Stat."
 	value = 8
-	gain_text = "<span class='notice'>You look around to see people less prepared than you.</span>"
-	medical_record_text = "This patient is observed to have unnatural abs."
+	gain_text = "<span class='notice'>You're ready to take on everything the City throws at you!</span>"
+	medical_record_text = "Patient demonstrates a capacity for tenacity and grit."
 	hardcore_value = -16
 
 /datum/quirk/skilled/on_spawn()
@@ -33,14 +33,14 @@
 
 /datum/quirk/fluffy_tongue //not positive, but it costs points so we ball
 	name = "Fluffy Tongue"
-	desc = "You had wronged the head more than once in your lifetime, thus he has ordered you to go under the ''uwufication'' surgery. You regret everything that you did as now you cannot speak normally."
+	desc = "You offended the wrong people and have been forced to undergo experimental surgery as punishment. You regret your existance."
 	value = 6
-	gain_text = "<span class='danger'>That damned head... how will I speak to my co-workers now?</span>"
-	medical_record_text = "This patient has gotten ''uwufication'' surgery, this has been ordered by the head himself and is not to be reverted."
+	gain_text = "<span class='danger'>How can I bear to speak to my co-workers now?</span>"
+	medical_record_text = "Patient has gotten \"uwufication\" surgery by order of the Head. The condition is not to be treated."
 //	hardcore_value = -2 // un-comment to let hardcore random cause chaos, unrecommended
 
 /datum/quirk/fluffy_tongue/on_spawn()
-	RegisterSignal(quirk_holder, COMSIG_MOB_SAY, .proc/handle_speech)
+	RegisterSignal(quirk_holder, COMSIG_MOB_SAY, PROC_REF(handle_speech))
 
 /datum/quirk/fluffy_tongue/proc/handle_speech(datum/source, list/speech_args)
 	var/message = speech_args[SPEECH_MESSAGE]
@@ -195,7 +195,7 @@
 /datum/quirk/skittish
 	name = "Skittish"
 	desc = "You're easy to startle, and hide frequently. Run into a closed locker to jump into it, as long as you have access. You can walk to avoid this."
-	value = 4
+	value = 2
 	mob_trait = TRAIT_SKITTISH
 	medical_record_text = "Patient demonstrates a high aversion to danger and has described hiding in containers out of fear."
 

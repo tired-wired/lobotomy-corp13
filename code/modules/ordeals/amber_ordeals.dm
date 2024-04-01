@@ -1,23 +1,30 @@
 // Dawn
 /datum/ordeal/simplespawn/amber_dawn
-	name = "Dawn of Amber"
-	annonce_text = "A perfect meal, an excellent substitute."
+	name = "The Dawn of Amber"
+	flavor_name = "The Perfect Meal"
+	announce_text = "A perfect meal, an excellent substitute."
+	end_announce_text = "We ate incessantly to live. The inevitable diminution, the waste..."
 	level = 1
 	reward_percent = 0.1
-	annonce_sound = 'sound/effects/ordeals/amber_start.ogg'
+	announce_sound = 'sound/effects/ordeals/amber_start.ogg'
 	end_sound = 'sound/effects/ordeals/amber_end.ogg'
 	color = "#FFBF00"
 	spawn_places = 4
 	spawn_amount = 3
 	spawn_type = /mob/living/simple_animal/hostile/ordeal/amber_bug
 
+/datum/ordeal/simplespawn/amber_dawn/DeploymentZone(turf/T, no_center = FALSE)
+	return T //deployment zone unnecessary since amber dawns burrow out of a 5x5 zone
+
 // Dusk
 /datum/ordeal/simplespawn/amber_dusk
-	name = "Dusk of Amber"
-	annonce_text = "To accustom oneself to the taste was an inevitable process."
+	name = "The Dusk of Amber"
+	flavor_name = "Food Chain"
+	announce_text = "To accustom oneself to the taste was an inevitable process."
+	end_announce_text = "We could live. We could continue eating."
 	level = 3
 	reward_percent = 0.2
-	annonce_sound = 'sound/effects/ordeals/amber_start.ogg'
+	announce_sound = 'sound/effects/ordeals/amber_start.ogg'
 	end_sound = 'sound/effects/ordeals/amber_end.ogg'
 	color = "#FFBF00"
 	spawn_places = 3
@@ -28,11 +35,13 @@
 
 // Midnight
 /datum/ordeal/amber_midnight
-	name = "Midnight of Amber"
-	annonce_text = "They fought amongst themselves to eat the others."
+	name = "The Midnight of Amber"
+	flavor_name = "Eternal Meal"
+	announce_text = "They fought amongst themselves to eat the others."
+	end_announce_text = "And the stronger side survived. That, simply, is the story."
 	level = 4
 	reward_percent = 0.25
-	annonce_sound = 'sound/effects/ordeals/amber_start.ogg'
+	announce_sound = 'sound/effects/ordeals/amber_start.ogg'
 	end_sound = 'sound/effects/ordeals/amber_end.ogg'
 	color = "#FFBF00"
 	/// How many mobs to spawn

@@ -68,7 +68,7 @@ For escape damage you will have to get creative and figure out how dangerous it 
 
 	// Work damage
 	if(isnull(abno_work_damage_type))
-		abno_work_damage_type = capitalize(initial(abno_type.work_damage_type))
+		abno_work_damage_type = uppertext(initial(abno_type.work_damage_type))
 	if(isnull(abno_work_damage_count))
 		abno_work_damage_count = SimpleWorkDamageToText(initial(abno_type.work_damage_amount))
 	info += "Work Damage Type: [abno_work_damage_type]<br>"
@@ -98,7 +98,7 @@ For escape damage you will have to get creative and figure out how dangerous it 
 
 	info += "<h3><center>Breach Information</center></h3><br>"
 	if(isnull(abno_breach_damage_type))
-		abno_breach_damage_type = capitalize(initial(abno_type.melee_damage_type))
+		abno_breach_damage_type = uppertext(initial(abno_type.melee_damage_type))
 	if(isnull(abno_breach_damage_count))
 		abno_breach_damage_count = SimpleDamageToText(initial(abno_type.melee_damage_upper) * initial(abno_type.rapid_melee))
 	info += "<h4>Escape Damage Type:</h4> [abno_breach_damage_type]<br>"
@@ -141,7 +141,8 @@ For escape damage you will have to get creative and figure out how dangerous it 
 	F is for abnormalities that take on the traits of fictional stories or urban legends.<br>
 	T is for abnormalities that formed from traumatic experiences or embody a certain phobia.<br>
 	O is for abnormalities that do not take on the traits of traumas or fairy tales. <br>
-	D is for abnormalities that were labeled as non essential for our overall goal. <br>
+	D and C is for abnormalities that were labeled as non essential for our overall goal. <br>
+	M is for abnormalities that take on the traits of old world mythology. <br>
 	-<br>
 	The second letter of the classification code is their physical form, this is easier to find if you have seen the abnormality.<br>
 	01 is humanoids, <br>

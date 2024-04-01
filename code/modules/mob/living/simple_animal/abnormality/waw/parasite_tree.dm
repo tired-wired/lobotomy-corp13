@@ -1,5 +1,5 @@
-#define THE_LIARS_BLESSING /datum/status_effect/parasite_tree_blessing
-#define THE_TREE_CURSE /datum/status_effect/parasite_tree_curse
+#define THE_LIARS_BLESSING /datum/status_effect/display/parasite_tree_blessing
+#define THE_TREE_CURSE /datum/status_effect/display/parasite_tree_curse
 
 //Ive somehow created a system that connects several entities together by using locate. Im unsure if this fragile system
 //is better than using global values. Evidence is leaning towards yes.
@@ -10,6 +10,7 @@
 	icon = 'ModularTegustation/Teguicons/128x128.dmi'
 	icon_state = "parasitetreeshine"
 	icon_living = "parasitetreeshine"
+	portrait = "parasite_tree"
 	pixel_x = -48
 	base_pixel_x = -48
 	pixel_y = -10
@@ -22,16 +23,17 @@
 		ABNORMALITY_WORK_INSTINCT = 45,
 		ABNORMALITY_WORK_INSIGHT = list(40, 40, 40, 45, 45),
 		ABNORMALITY_WORK_ATTACHMENT = list(50, 50, 50, 50, 55),
-		ABNORMALITY_WORK_REPRESSION = 20
-		)
+		ABNORMALITY_WORK_REPRESSION = 20,
+	)
 	work_damage_amount = 12
 	work_damage_type = WHITE_DAMAGE
 
 	ego_list = list(
 		/datum/ego_datum/weapon/hypocrisy,
-		/datum/ego_datum/armor/hypocrisy
-		)
+		/datum/ego_datum/armor/hypocrisy,
+	)
 
+	abnormality_origin = ABNORMALITY_ORIGIN_LOBOTOMY
 	gift_type =  /datum/ego_gifts/hypocrisy
 	gift_message = "Your ears seem to have grown longer. Weird."
 	var/origin_cooldown = 0 //null when compared to numbers is a eldritch concept so world.time cannot be more or less.
@@ -40,7 +42,7 @@
 
 /mob/living/simple_animal/hostile/abnormality/parasite_tree/Initialize()
 	. = ..()
-	RegisterSignal(SSdcs, COMSIG_GLOB_ABNORMALITY_BREACH, .proc/dropLeaf)
+	RegisterSignal(SSdcs, COMSIG_GLOB_ABNORMALITY_BREACH, PROC_REF(dropLeaf))
 
 /mob/living/simple_animal/hostile/abnormality/parasite_tree/PostWorkEffect(mob/living/carbon/human/user, work_type, pe, work_time, canceled)
 	if(work_type != ABNORMALITY_WORK_REPRESSION && user.stat != DEAD)
@@ -48,17 +50,17 @@
 			var/mob/living/carbon/human/witness = locate(/mob/living/carbon/human) in livinginview(1, src) //included mostly for lore since you encourage people to use it.
 			if(witness && !witness.has_status_effect(THE_LIARS_BLESSING))
 				witness.apply_status_effect(THE_LIARS_BLESSING)
-				to_chat(witness, "<span class='notice'>The air around [src] makes you feel at peace.</span>")
+				to_chat(witness, span_notice("The air around [src] makes you feel at peace."))
 		else if(datum_reference.qliphoth_meter <= 0)
 			user.apply_status_effect(THE_TREE_CURSE)
 		else
 			user.apply_status_effect(THE_LIARS_BLESSING)
 			if(prob(5))
-				to_chat(user, "<span class='notice'>You hear a voice telling you to bring anyone who needs help here.</span>")
+				to_chat(user, span_notice("You hear a voice telling you to bring anyone who needs help here."))
 		return
 	if(datum_reference.qliphoth_meter <= 4)
 		if(canceled || pe < datum_reference.neutral_boxes)
-			to_chat(user, "<span class='notice'>You feel refreshed after being near [src].</span>")
+			to_chat(user, span_notice("You feel refreshed after being near [src]."))
 			if(datum_reference.qliphoth_meter >= 1)
 				user.apply_status_effect(THE_LIARS_BLESSING)
 			else
@@ -66,11 +68,11 @@
 			return ..()
 		if(locate(THE_TREE_CURSE) in blessed)
 			resetQliphoth()
-			for(var/datum/status_effect/parasite_tree_curse/curse in blessed)
+			for(var/datum/status_effect/display/parasite_tree_curse/curse in blessed)
 				qdel(curse)
-			to_chat(user, "<span class='nicegreen'>The scarlet red eye closes as you smash apart [src]'s flowers.</span>")
+			to_chat(user, span_nicegreen("The scarlet red eye closes as you smash apart [src]'s flowers."))
 			return ..()
-		to_chat(user, "<span class='notice'>[src] stands silently as you finish destroying the buds.</span>")
+		to_chat(user, span_notice("[src] stands silently as you finish destroying the buds."))
 		resetQliphoth()
 	return ..()
 
@@ -79,7 +81,7 @@
 		cut_overlays()
 		var/mutable_appearance/colored_overlay = mutable_appearance(icon, "parasitetreeeye", layer + 0.1)
 		add_overlay(colored_overlay)
-		for(var/datum/status_effect/parasite_tree_blessing/P in blessed)
+		for(var/datum/status_effect/display/parasite_tree_blessing/P in blessed)
 			P.facadeFalls()
 	else
 		datum_reference.qliphoth_change(1)
@@ -107,7 +109,7 @@
 
 /mob/living/simple_animal/hostile/abnormality/parasite_tree/proc/endBreach()
 	if(locate(THE_LIARS_BLESSING) in blessed)
-		for(var/datum/status_effect/parasite_tree_blessing/P in blessed)
+		for(var/datum/status_effect/display/parasite_tree_blessing/P in blessed)
 			P.facadeFalls()
 		return FALSE
 	if(!minions.len && !locate(THE_TREE_CURSE) in blessed) //no minions? no blessed?
@@ -129,7 +131,7 @@
 					potentialFollowers[L] += (L.health - 1) + (L.sanityhealth - 1)
 		if(potentialFollowers.len)
 			var/mob/living/carbon/human/chosen_agent = pickweight(potentialFollowers)
-			to_chat(chosen_agent, "<span class='nicegreen'>A large leaf lands nearby.</span>")
+			to_chat(chosen_agent, span_nicegreen("A large leaf lands nearby."))
 			var/list/possibleleafturf = list()
 			for(var/turf/T in oview(3, chosen_agent))
 				if(!T.density && !locate(/obj/structure/window || /obj/machinery/door) in T.contents)
@@ -148,14 +150,14 @@
 	health = 800
 	can_patrol = FALSE
 	wander = 0
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 1.2, WHITE_DAMAGE = 0.6, BLACK_DAMAGE = 0.8, PALE_DAMAGE = 0.8)
+	damage_coeff = list(RED_DAMAGE = 1.2, WHITE_DAMAGE = 0.6, BLACK_DAMAGE = 0.8, PALE_DAMAGE = 0.8)
 	ranged = TRUE
 	ranged_cooldown_time = 1 SECONDS
 	obj_damage = 0
 	del_on_death = TRUE
 	environment_smash = ENVIRONMENT_SMASH_NONE
-	deathmessage = "shatters into numerous spongy splinters."
-	deathsound = 'sound/creatures/venus_trap_death.ogg'
+	death_message = "shatters into numerous spongy splinters."
+	death_sound = 'sound/creatures/venus_trap_death.ogg'
 	attacked_sound = 'sound/creatures/venus_trap_hurt.ogg'
 	projectilesound = 'sound/machines/clockcult/steam_whoosh.ogg'
 	var/mob/living/simple_animal/hostile/abnormality/parasite_tree/connected_abno
@@ -232,7 +234,7 @@
 	if(C.has_status_effect(THE_TREE_CURSE)) //If you have the status effect already dont mess with them.
 		return FALSE
 	C.smoke_delay++
-	addtimer(CALLBACK(src, .proc/remove_smoke_delay, C), 10)
+	addtimer(CALLBACK(src, PROC_REF(remove_smoke_delay), C), 10)
 	return smoke_mob_effect(C)
 
 
@@ -248,100 +250,104 @@
 	effect_type = /obj/effect/particle_effect/smoke/parasite_tree
 
 // STATUS EFFECT
-/datum/status_effect/parasite_tree_blessing
+/datum/status_effect/display/parasite_tree_blessing
 	id = "parasite_tree_blessing"
 	status_type = STATUS_EFFECT_UNIQUE
 	duration = -1
 	tick_interval = 50
 	alert_type = null
 	on_remove_on_mob_delete = TRUE
+	display_name = "hypocrisy"
 	var/mob/living/simple_animal/hostile/abnormality/parasite_tree/connected_abno
 
-/datum/status_effect/parasite_tree_blessing/on_apply()
+/datum/status_effect/display/parasite_tree_blessing/on_apply()
 	. = ..()
-	if(ishuman(owner))
-		var/mob/living/carbon/human/H = owner
-		H.add_overlay(mutable_appearance('ModularTegustation/Teguicons/tegu_effects32x48.dmi', "hypocrisy", -HALO_LAYER))
-		H.adjust_attribute_buff(TEMPERANCE_ATTRIBUTE, 10)
-		H.adjust_attribute_buff(PRUDENCE_ATTRIBUTE, 10)
-		connected_abno = locate(/mob/living/simple_animal/hostile/abnormality/parasite_tree) in GLOB.abnormality_mob_list
-		if(connected_abno)
-			connected_abno.blessed += src
-			connected_abno.datum_reference.qliphoth_change(-1)
+	if(!ishuman(owner))
+		return
+	var/mob/living/carbon/human/status_holder = owner
+	status_holder.adjust_attribute_buff(TEMPERANCE_ATTRIBUTE, 10)
+	status_holder.adjust_attribute_buff(PRUDENCE_ATTRIBUTE, 10)
+	connected_abno = locate(/mob/living/simple_animal/hostile/abnormality/parasite_tree) in GLOB.abnormality_mob_list
+	if(!connected_abno)
+		return
+	connected_abno.blessed += src
+	connected_abno.datum_reference.qliphoth_change(-1)
 
-/datum/status_effect/parasite_tree_blessing/tick()
+/datum/status_effect/display/parasite_tree_blessing/tick()
 	. = ..()
-	if(ishuman(owner))
-		var/mob/living/carbon/human/H = owner
-		H.adjustSanityLoss(-3)
-		if(H.stat == DEAD)
-			qdel(src)
-	else
+	if(!ishuman(owner))
 		QDEL_IN(src, 5)
+		return
+	var/mob/living/carbon/human/status_holder = owner
+	status_holder.adjustSanityLoss(-3)
+	if(status_holder.stat == DEAD)
+		qdel(src)
 
-/datum/status_effect/parasite_tree_blessing/on_remove()
-	if(ishuman(owner))
-		var/mob/living/carbon/human/H = owner
-		if(connected_abno)
-			connected_abno.blessed -= src
-			if(H.stat == DEAD)
-				connected_abno.datum_reference.qliphoth_change(1)
-		H.cut_overlay(mutable_appearance('ModularTegustation/Teguicons/tegu_effects32x48.dmi', "hypocrisy", -HALO_LAYER))
-		H.adjust_attribute_buff(TEMPERANCE_ATTRIBUTE, -10)
-		H.adjust_attribute_buff(PRUDENCE_ATTRIBUTE, -10)
-	. = ..()
+/datum/status_effect/display/parasite_tree_blessing/on_remove()
+	if(!ishuman(owner))
+		return ..()
+	var/mob/living/carbon/human/status_holder = owner
+	status_holder.adjust_attribute_buff(TEMPERANCE_ATTRIBUTE, -10)
+	status_holder.adjust_attribute_buff(PRUDENCE_ATTRIBUTE, -10)
+	if(!connected_abno)
+		return ..()
+	connected_abno.blessed -= src
+	if(status_holder.stat == DEAD)
+		connected_abno.datum_reference.qliphoth_change(1)
+	return ..()
 
-/datum/status_effect/parasite_tree_blessing/proc/facadeFalls()
+/datum/status_effect/display/parasite_tree_blessing/proc/facadeFalls()
 	owner.apply_status_effect(THE_TREE_CURSE)
 	qdel(src)
 
 		//CURSE EFFECT
-/datum/status_effect/parasite_tree_curse
+/datum/status_effect/display/parasite_tree_curse
 	id = "parasite_tree_curse"
 	status_type = STATUS_EFFECT_UNIQUE
 	duration = -1
 	tick_interval = 50
 	alert_type = null
 	on_remove_on_mob_delete = TRUE //Alot of people get gibbed by abnormalities, so this ensures they are removed from the blessed list.
-	var/mutable_appearance/leaf_visual
+	display_name = "hypocrisy"
 	var/mob/living/simple_animal/hostile/abnormality/parasite_tree/connected_abno
 
-/datum/status_effect/parasite_tree_curse/on_apply()
+/datum/status_effect/display/parasite_tree_curse/on_apply()
 	. = ..()
-	leaf_visual = mutable_appearance('ModularTegustation/Teguicons/tegu_effects32x48.dmi', "hypocrisy", -HALO_LAYER)
-	leaf_visual.color = "#4B0076" //indigo
-	owner.add_overlay(leaf_visual)
 	connected_abno = locate(/mob/living/simple_animal/hostile/abnormality/parasite_tree) in GLOB.abnormality_mob_list
+	to_chat(owner, span_warning("You feel something sprouting under your skin! Its time to be reborn with the tree."))
 	if(connected_abno)
 		connected_abno.blessed += src
-	to_chat(owner, "<span class='warning'>You feel something sprouting under your skin! Its time to be reborn with the tree.</span>")
 
-/datum/status_effect/parasite_tree_curse/tick()
+/datum/status_effect/display/parasite_tree_curse/tick()
 	. = ..()
-	if(ishuman(owner))
-		var/mob/living/carbon/human/L = owner
-		if(L.sanity_lost || L.stat == DEAD)
-			qdel(src)
-		var/tree_toxin = L.maxSanity * 0.20
-		L.apply_damage(tree_toxin, WHITE_DAMAGE, null, L.run_armor_check(null, WHITE_DAMAGE), spread_damage = FALSE)
+	if(!ishuman(owner))
+		return
+	var/mob/living/carbon/human/status_holder = owner
+	if(status_holder.sanity_lost || status_holder.stat == DEAD)
+		qdel(src)
+	var/tree_toxin = status_holder.maxSanity * 0.20
+	status_holder.apply_damage(tree_toxin, WHITE_DAMAGE, null, status_holder.run_armor_check(null, WHITE_DAMAGE), spread_damage = FALSE)
 
-/datum/status_effect/parasite_tree_curse/on_remove()
-	owner.cut_overlay(leaf_visual)
-	var/mob/living/carbon/human/host = owner
+/datum/status_effect/display/parasite_tree_curse/on_remove()
+	var/mob/living/carbon/human/status_holder = owner
 	if(connected_abno)
 		connected_abno.blessed -= src
-		if(!owner || host.stat == DEAD)
+		if(!owner || status_holder.stat == DEAD)
 			connected_abno.endBreach()
-	if(host.sanity_lost && host.stat != DEAD)
-		var/mob/living/simple_animal/hostile/parasite_tree_sapling/N = new(owner.loc)
-		nested_items(N, host.get_item_by_slot(ITEM_SLOT_SUITSTORE))
-		nested_items(N, host.get_item_by_slot(ITEM_SLOT_BELT))
-		nested_items(N, host.get_item_by_slot(ITEM_SLOT_BACK))
-		nested_items(N, host.get_item_by_slot(ITEM_SLOT_OCLOTHING))
+	if(status_holder.sanity_lost && status_holder.stat != DEAD)
+		var/mob/living/simple_animal/hostile/parasite_tree_sapling/new_mob = new(owner.loc)
+		nested_items(new_mob, status_holder.get_item_by_slot(ITEM_SLOT_SUITSTORE))
+		nested_items(new_mob, status_holder.get_item_by_slot(ITEM_SLOT_BELT))
+		nested_items(new_mob, status_holder.get_item_by_slot(ITEM_SLOT_BACK))
+		nested_items(new_mob, status_holder.get_item_by_slot(ITEM_SLOT_OCLOTHING))
 		QDEL_IN(owner, 5) //rabbit sanity implant explodes at 5
-	. = ..()
+	return ..()
 
-/datum/status_effect/parasite_tree_curse/proc/nested_items(mob/living/simple_animal/hostile/nest, obj/item/nested_item)
+/datum/status_effect/display/parasite_tree_curse/TweakDisplayIcon()
+	..()
+	icon_overlay.color = "#4B0076" //indigo
+
+/datum/status_effect/display/parasite_tree_curse/proc/nested_items(mob/living/simple_animal/hostile/nest, obj/item/nested_item)
 	if(nested_item)
 		nested_item.forceMove(nest)
 
@@ -377,7 +383,7 @@
 			L.apply_status_effect(THE_LIARS_BLESSING)
 		L.adjustBruteLoss(heal_amount)
 		new /obj/effect/temp_visual/cloud_swirl(get_turf(L)) //placeholder
-		to_chat(L, "<span class='nicegreen'>Your wounds quickly close after touching the [src].</span>")
+		to_chat(L, span_nicegreen("Your wounds quickly close after touching the [src]."))
 		qdel(src)
 
 #undef THE_LIARS_BLESSING

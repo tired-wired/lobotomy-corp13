@@ -6,11 +6,11 @@
 	icon_living = "yin"
 	var/icon_breach = "yin_breach"
 	icon_dead = "yin_slain"
+	portrait = "yin"
 	is_flying_animal = TRUE
 	maxHealth = 1600
 	health = 1600
 	move_to_delay = 7
-	speed = 7
 	pixel_x = -16
 	base_pixel_x = -16
 	pixel_y = -8
@@ -24,28 +24,31 @@
 	work_damage_amount = 10
 	work_damage_type = BLACK_DAMAGE
 	work_chances = list(
-						ABNORMALITY_WORK_INSTINCT = list(0, 0, 40, 40, 40),
-						ABNORMALITY_WORK_INSIGHT = list(0, 0, 55, 55, 55),
-						ABNORMALITY_WORK_ATTACHMENT = 0,
-						ABNORMALITY_WORK_REPRESSION = list(0, 0, 40, 40, 40),
-						"Release" = 0
-						)
+		ABNORMALITY_WORK_INSTINCT = list(0, 0, 40, 40, 40),
+		ABNORMALITY_WORK_INSIGHT = list(0, 0, 55, 55, 55),
+		ABNORMALITY_WORK_ATTACHMENT = 0,
+		ABNORMALITY_WORK_REPRESSION = list(0, 0, 40, 40, 40),
+	)
 	max_boxes = 20
 	success_boxes = 16
 	neutral_boxes = 9
 
 	ego_list = list(
 		/datum/ego_datum/weapon/discord,
-		/datum/ego_datum/armor/discord
-		)
+		/datum/ego_datum/armor/discord,
+	)
 	gift_type = /datum/ego_gifts/discord
 	abnormality_origin = ABNORMALITY_ORIGIN_LOBOTOMY
+
+	grouped_abnos = list(
+		/mob/living/simple_animal/hostile/abnormality/yang = 5, // TAKE THE FISH. DO IT
+	)
 
 	faction = list("neutral", "hostile") // Not fought by anything, typically. But...
 	var/faction_override = list("hostile") // The effects hit non-hostiles.
 
 	//Melee
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 0.5, WHITE_DAMAGE = 1.5, BLACK_DAMAGE = 0, PALE_DAMAGE = 1)
+	damage_coeff = list(RED_DAMAGE = 0.5, WHITE_DAMAGE = 1.5, BLACK_DAMAGE = 0, PALE_DAMAGE = 1)
 	melee_damage_lower = 60 // Doesn't actually swing individually
 	melee_damage_upper = 60
 	melee_damage_type = BLACK_DAMAGE
@@ -69,7 +72,7 @@
 		/mob/living/simple_animal/hostile/megafauna/apocalypse_bird,
 		/mob/living/simple_animal/hostile/megafauna/arbiter,
 		/mob/living/simple_animal/hostile/abnormality/yang,
-		/mob/living/simple_animal/hostile/abnormality/yin
+		/mob/living/simple_animal/hostile/abnormality/yin,
 	)
 	var/dragon_spawned = FALSE
 
@@ -107,8 +110,8 @@
 /mob/living/simple_animal/hostile/abnormality/yin/Moved(atom/OldLoc, Dir, override = TRUE)
 	if(!COOLDOWN_FINISHED(src, pulse) || SSlobotomy_events.yin_downed)
 		return ..()
-	var/found = FALSE
-	for(var/mob/living/L in view(2, src))
+	var/turfs_to_check = view(2, src)
+	for(var/mob/living/L in turfs_to_check)
 		if(L == src)
 			continue
 		if(L.status_flags & GODMODE)
@@ -117,11 +120,15 @@
 			continue
 		if(L.stat >= DEAD)
 			continue
-		found = TRUE
-		break
-	if(found)
 		COOLDOWN_START(src, pulse, pulse_cooldown)
-		INVOKE_ASYNC(src, .proc/Pulse)
+		INVOKE_ASYNC(src, PROC_REF(Pulse))
+		return ..()
+	for(var/obj/vehicle/sealed/mecha/M in turfs_to_check)
+		if(!M.occupants || length(M.occupants) == 0)
+			continue
+		COOLDOWN_START(src, pulse, pulse_cooldown)
+		INVOKE_ASYNC(src, PROC_REF(Pulse))
+		return ..()
 	return ..()
 
 /mob/living/simple_animal/hostile/abnormality/yin/death(gibbed)
@@ -130,20 +137,20 @@
 		return ..()
 	if(SSlobotomy_events.yin_downed)
 		return FALSE
-	INVOKE_ASYNC(src, .proc/BeDead)
+	INVOKE_ASYNC(src, PROC_REF(BeDead))
 
 /mob/living/simple_animal/hostile/abnormality/yin/proc/BeDead()
 	icon_state = icon_dead
 	playsound(src, 'sound/effects/magic.ogg', 60)
 	SSlobotomy_events.yin_downed = TRUE
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 0, WHITE_DAMAGE = 0, BLACK_DAMAGE = 0, PALE_DAMAGE = 0)
+	ChangeResistances(list(RED_DAMAGE = 0, WHITE_DAMAGE = 0, PALE_DAMAGE = 0))
 	for(var/i = 1 to 12)
 		SLEEP_CHECK_DEATH(5 SECONDS)
 		if(SSlobotomy_events.yang_downed)
 			death()
 			return
 	adjustBruteLoss(-maxHealth)
-	damage_coeff = list(BRUTE = 1, RED_DAMAGE = 0.5, WHITE_DAMAGE = 1.5, BLACK_DAMAGE = 0, PALE_DAMAGE = 1)
+	ChangeResistances(list(RED_DAMAGE = 0.5, WHITE_DAMAGE = 1.5, PALE_DAMAGE = 1))
 	SSlobotomy_events.yin_downed = FALSE
 	icon_state = icon_breach
 
@@ -170,6 +177,7 @@
 	SSlobotomy_events.yin_downed = FALSE
 
 /mob/living/simple_animal/hostile/abnormality/yin/FailureEffect(mob/living/carbon/human/user, work_type, pe)
+	. = ..()
 	datum_reference.qliphoth_change(-1, user)
 	return
 
@@ -194,10 +202,9 @@
 	. = BULLET_ACT_HIT
 	if(!P.firer)
 		return .
-	var/mob/living/shooter = P.firer
-	if(!istype(shooter))
+	if(!isliving(P.firer) && !ismecha(P.firer))
 		return .
-	FireLaser(shooter)
+	FireLaser(P.firer)
 	return .
 
 /mob/living/simple_animal/hostile/abnormality/yin/AttackingTarget(atom/attacked_target)
@@ -210,13 +217,7 @@
 		var/list/to_hit = range(i, src) - hit_turfs
 		hit_turfs |= to_hit
 		for(var/turf/open/OT in to_hit)
-			for(var/mob/living/L in OT)
-				if(faction_check(L.faction, faction_override))
-					continue
-				if(L in hit)
-					continue
-				L.apply_damage(pulse_damage, BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE))
-				hit += L
+			hit = HurtInTurf(OT, hit, pulse_damage, BLACK_DAMAGE, null, TRUE, faction_override, TRUE)
 			new /obj/effect/temp_visual/small_smoke/yin_smoke/short(OT)
 		sleep(3)
 	return
@@ -272,7 +273,7 @@
 	sound_to_playing_players_on_level("sound/abnormalities/yin/dragon_spawn.ogg", 75, zlevel = src.z)
 	for(var/i = 0 to 7)
 		var/obj/effect/yinyang_dragon/DP
-		var/turf/T = path[8-i]
+		var/turf/T = path[15-(i*2)]
 		var/list/temp_path = getline(T, end_turf)
 		switch(i)
 			if(0)
@@ -304,7 +305,7 @@
 	return
 
 /mob/living/simple_animal/hostile/abnormality/yin/proc/DragonFlip(obj/effect/yinyang_dragon/DP)
-	for(var/obj/machinery/computer/abnormality/AC in range(1, DP))
+	for(var/obj/machinery/computer/abnormality/AC in range(2, DP))
 		if(AC in hit_people)
 			continue
 		if(!AC.datum_reference.current)
@@ -315,7 +316,7 @@
 		AC.datum_reference.qliphoth_change(999)
 		AC.datum_reference.qliphoth_change(-qlip)
 		hit_people += AC
-	for(var/mob/living/L in range(1, DP))
+	for(var/mob/living/L in range(2, DP))
 		if(L in hit_people)
 			continue
 		if(L.type in prohibitted_flips)
@@ -329,7 +330,7 @@
 			H.adjustSanityLoss(-H.maxSanity)
 			H.adjustSanityLoss(damage)
 		hit_people += L
-		to_chat(L, "<span class='userdanger'>All that is shall become all that isn't.</span>")
+		to_chat(L, span_userdanger("All that is shall become all that isn't."))
 
 /mob/living/simple_animal/hostile/abnormality/yin/proc/YangCheck()
 	for(var/datum/abnormality/AD in SSlobotomy_corp.all_abnormality_datums)
@@ -342,6 +343,10 @@
 	desc = "All that isn't shall become all that is."
 	icon = 'ModularTegustation/Teguicons/64x64.dmi'
 	icon_state = "dragon_body"
+
+/obj/effect/yinyang_dragon/Initialize(mapload)
+	. = ..()
+	src.transform *= 1.5
 
 /obj/effect/yinyang_dragon/Destroy(force)
 	. = ..()
@@ -372,11 +377,11 @@
 
 /obj/effect/temp_visual/revenant/cracks/yin/Destroy()
 	for(var/turf/T in range(1, src))
-		if(T.z != z)
-			continue
 		for(var/mob/living/L in T)
 			if(faction_check(L.faction, src.faction))
 				continue
 			L.apply_damage(damage, BLACK_DAMAGE, null, L.run_armor_check(null, BLACK_DAMAGE), spread_damage = TRUE)
+		for(var/obj/vehicle/sealed/mecha/V in T)
+			V.take_damage(damage, BLACK_DAMAGE)
 		new /obj/effect/temp_visual/small_smoke/yin_smoke/long(T)
 	return ..()

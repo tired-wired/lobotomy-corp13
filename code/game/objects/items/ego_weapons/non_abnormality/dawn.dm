@@ -6,17 +6,17 @@
 	icon_state = "philip"
 	inhand_icon_state = "philip"
 	damtype = RED_DAMAGE
-	armortype = RED_DAMAGE
+
 	attack_verb_continuous = list("bashes", "crushes")
 	attack_verb_simple = list("bash", "crush")
 	var/aoe_range
 	var/aoe_target
 	attribute_requirements = list(
-							FORTITUDE_ATTRIBUTE = 60,
-							PRUDENCE_ATTRIBUTE = 60,
-							TEMPERANCE_ATTRIBUTE = 60,
-							JUSTICE_ATTRIBUTE = 80
-							)
+		FORTITUDE_ATTRIBUTE = 60,
+		PRUDENCE_ATTRIBUTE = 60,
+		TEMPERANCE_ATTRIBUTE = 60,
+		JUSTICE_ATTRIBUTE = 80,
+	)
 
 /obj/item/ego_weapon/city/dawn/attack(mob/living/target, mob/living/user)
 	..()
@@ -28,10 +28,7 @@
 		for(var/turf/T in view(aoe_range, target))
 			if(prob(30))
 				new /obj/effect/temp_visual/fire/fast(T)
-			for(var/mob/living/L in T)
-				if(L == user)
-					continue
-				L.apply_damage(force*0.2, damtype, null, L.run_armor_check(null, damtype), spread_damage = TRUE)
+			user.HurtInTurf(T, list(), force*0.2, damtype, hurt_mechs = TRUE)
 	aoe_target = target
 
 //Philip's Sword

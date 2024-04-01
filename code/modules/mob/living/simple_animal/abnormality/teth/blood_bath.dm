@@ -3,6 +3,7 @@
 	desc = "A constantly dripping bath of blood"
 	icon = 'ModularTegustation/Teguicons/48x64.dmi'
 	icon_state = "bloodbath"
+	portrait = "blood_bath"
 	maxHealth = 400
 	health = 400
 	threat_level = TETH_LEVEL
@@ -10,7 +11,7 @@
 		ABNORMALITY_WORK_INSTINCT = list(55, 55, 50, 50, 50),
 		ABNORMALITY_WORK_INSIGHT = list(45, 45, 40, 40, 40),
 		ABNORMALITY_WORK_ATTACHMENT = 60,
-		ABNORMALITY_WORK_REPRESSION = list(30, 20, 10, 0, 0)
+		ABNORMALITY_WORK_REPRESSION = list(30, 20, 10, 0, 0),
 	)
 	work_damage_amount = 8
 	work_damage_type = WHITE_DAMAGE
@@ -18,7 +19,7 @@
 
 	ego_list = list(
 		/datum/ego_datum/weapon/wrist,
-		/datum/ego_datum/armor/wrist
+		/datum/ego_datum/armor/wrist,
 	)
 
 	gift_type =  /datum/ego_gifts/wrist
@@ -35,10 +36,14 @@
 		user.Stun(30 SECONDS)
 		step_towards(user, src)
 		sleep(0.5 SECONDS)
+		if(QDELETED(user))
+			return
 		step_towards(user, src)
 		sleep(0.5 SECONDS)
+		if(QDELETED(user))
+			return
 		user.dust()
-		visible_message("<span class='warning'>[src] drags [user] into itself!</span>")
+		visible_message(span_warning("[src] drags [user] into itself!"))
 		playsound(get_turf(src),'sound/effects/wounds/blood2.ogg')
 		playsound(get_turf(src),'sound/effects/footstep/water1.ogg')
 		SLEEP_CHECK_DEATH(3 SECONDS)
